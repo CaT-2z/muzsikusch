@@ -1,14 +1,14 @@
 package main
 
 type Source interface {
-	play(Music_ID)
-	pause()
-	stop()
-	skip()
-	resume()
-	forward(int)
-	reverse(int)
-	setVolume(int)
-	getVolume() int
-	mute()
+	play(MusicID) error
+	pause() error
+	stop() error
+	skip() error
+	resume() error
+	forward(int) error
+	reverse(int) error
+	setVolume(int) error
+	getVolume() (int, error)
+	mute() error
 }
