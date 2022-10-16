@@ -1,23 +1,27 @@
 package main
 
 import (
-	"github.com/dexterlb/mpvipc"
+	"context"
+
 	"github.com/kkdai/youtube/v2"
 )
 
 type YoutubeSource struct {
-	instance           mpvipc.Connection
-	events             chan *mpvipc.Event
-	stopChan           chan struct{}
-	onPlaybackFinished func()
-	isActive           bool
+	MpvSource
 }
 
-func (s *YoutubeSource) register(cb func()) {
-	s.onPlaybackFinished = cb
+func NewYoutubeSource() *YoutubeSource {
+	mpv, err := NewMpvSource("/tmp/mpvsocket", context.Background())
+	if err != nil {
+		panic(err)
+	}
+
+	return &YoutubeSource{
+		MpvSource: *mpv,
+	}
 }
 
-func (s *YoutubeSource) play(musicID MusicID) error {
+func (s *YoutubeSource) Play(musicID MusicID) error {
 	url, err := getAudioURL(musicID)
 	if err != nil {
 		return err
@@ -29,56 +33,9 @@ func (s *YoutubeSource) play(musicID MusicID) error {
 	}
 	return err
 }
-func (s *YoutubeSource) stop() error {
-	s.isActive = false
-	_, err := s.instance.Call("stop")
-	return err
-}
-func (s *YoutubeSource) skip() error {
-	s.isActive = false
-	_, err := s.instance.Call("playlist-next", "force")
-	return err
-}
-func (s *YoutubeSource) pause() error {
-	return s.instance.Set("pause", true)
-}
-func (s *YoutubeSource) resume() error {
-	return s.instance.Set("pause", false)
-}
-func (s *YoutubeSource) forward(amm int) error {
-	_, err := s.instance.Call("seek", amm)
-	return err
-}
-func (s *YoutubeSource) reverse(amm int) error {
-	return s.forward(-amm)
-}
-func (s *YoutubeSource) setVolume(vol int) error {
-	return s.instance.Set("volume", vol)
-}
-func (s *YoutubeSource) getVolume() (int, error) {
-	vol, err := s.instance.Get("volume")
-	if err != nil {
-		return 0, err
-	}
-	return vol.(int), nil
-}
-func (s *YoutubeSource) mute() error {
-	_, err := s.instance.Call("cycle", "mute")
-	return err
-}
 
-func (s *YoutubeSource) search(query string) MusicID {
+func (s *YoutubeSource) Search(query string) MusicID {
 	panic("Cannot search youtube")
-}
-
-// TODO: Stop listening to events if the program closes
-func (s *YoutubeSource) waitForEnd() {
-	for event := range s.events {
-		if event.Name == "end-file" && s.isActive {
-			s.onPlaybackFinished()
-			s.isActive = false
-		}
-	}
 }
 
 func getBestAudio(formats youtube.FormatList) youtube.Format {

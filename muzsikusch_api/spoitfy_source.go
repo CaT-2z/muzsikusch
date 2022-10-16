@@ -22,11 +22,11 @@ type SpotifySource struct {
 	waiterEnder        context.CancelFunc
 }
 
-func (c *SpotifySource) register(onPBFinished func()) {
+func (c *SpotifySource) Register(onPBFinished func()) {
 	c.onPlaybackFinished = onPBFinished
 }
 
-func (c *SpotifySource) play(music_id MusicID) error {
+func (c *SpotifySource) Play(music_id MusicID) error {
 	log.Printf("Playing %v\n", music_id.SpotifyURI)
 	uri := music_id.spotify()
 	opt := spotify.PlayOptions{
@@ -44,7 +44,7 @@ func (c *SpotifySource) play(music_id MusicID) error {
 			//Device not found
 			fmt.Println("Discovering devices")
 			c.discoverDevices()
-			return c.play(music_id)
+			return c.Play(music_id)
 		}
 	}
 
@@ -60,22 +60,22 @@ func (c *SpotifySource) play(music_id MusicID) error {
 	return nil
 }
 
-func (c *SpotifySource) pause() error {
+func (c *SpotifySource) Pause() error {
 	return c.client.Pause(c.ctx)
 }
 
-func (c *SpotifySource) stop() error {
+func (c *SpotifySource) Stop() error {
 	c.waiterEnder()
 	return c.client.Pause(c.ctx)
 }
-func (c *SpotifySource) skip() error {
+func (c *SpotifySource) Skip() error {
 	c.waiterEnder()
 	return c.client.Next(c.ctx)
 }
-func (c *SpotifySource) resume() error {
+func (c *SpotifySource) Resume() error {
 	return c.client.Play(c.ctx)
 }
-func (c *SpotifySource) forward(ammount int) error {
+func (c *SpotifySource) Forward(ammount int) error {
 	state, err := c.client.PlayerCurrentlyPlaying(c.ctx)
 	if err != nil {
 		return err
@@ -83,13 +83,13 @@ func (c *SpotifySource) forward(ammount int) error {
 
 	return c.client.Seek(c.ctx, state.Progress+ammount)
 }
-func (c *SpotifySource) reverse(ammount int) error {
-	return c.forward(-ammount)
+func (c *SpotifySource) Reverse(ammount int) error {
+	return c.Forward(-ammount)
 }
-func (c *SpotifySource) setVolume(vol int) error {
+func (c *SpotifySource) SetVolume(vol int) error {
 	return c.client.Volume(c.ctx, vol)
 }
-func (c *SpotifySource) getVolume() (int, error) {
+func (c *SpotifySource) GetVolume() (int, error) {
 	state, err := c.client.PlayerState(c.ctx)
 
 	//TODO: handle error
@@ -100,21 +100,21 @@ func (c *SpotifySource) getVolume() (int, error) {
 	return state.Device.Volume, nil
 }
 
-func (c *SpotifySource) mute() error {
-	vol, err := c.getVolume()
+func (c *SpotifySource) Mute() error {
+	vol, err := c.GetVolume()
 	if err != nil {
 		return err
 	}
 
 	if vol != 0 {
 		c.old_volume = vol
-		return c.setVolume(0)
+		return c.SetVolume(0)
 	} else {
-		return c.setVolume(c.old_volume)
+		return c.SetVolume(c.old_volume)
 	}
 }
 
-func (c *SpotifySource) search(query string) MusicID {
+func (c *SpotifySource) Search(query string) MusicID {
 	results, err := c.client.Search(c.ctx, query, spotify.SearchTypeTrack)
 	if err != nil {
 		panic(err)
@@ -189,10 +189,6 @@ func (c *SpotifySource) waitForEnd(ctx context.Context) {
 			started = true
 			log.Println("Waiting for 100ms")
 			time.Sleep(100 * time.Millisecond)
-		} else if rem < 30*time.Nanosecond {
-			log.Println("FINISHED rem < 30")
-			c.onPlaybackFinished()
-			return
 		} else {
 			started = true
 			cap := 20 * time.Second

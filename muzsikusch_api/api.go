@@ -15,11 +15,11 @@ type Muzsikusch struct {
 func (m *Muzsikusch) Play(music_ID MusicID) error {
 	if music_ID.isSpotify() {
 		m.currentSource = m.spotifySource
-		return m.spotifySource.play(music_ID)
+		return m.spotifySource.Play(music_ID)
 	}
 	if music_ID.isYoutube() {
 		m.currentSource = m.youtubeSource
-		return m.youtubeSource.play(music_ID)
+		return m.youtubeSource.Play(music_ID)
 	}
 	return nil
 }
@@ -35,13 +35,13 @@ func (m *Muzsikusch) Enqueue(music_id MusicID) error {
 }
 
 func (m *Muzsikusch) Pause() error {
-	return m.currentSource.pause()
+	return m.currentSource.Pause()
 }
 func (m *Muzsikusch) Stop() error {
-	return m.currentSource.stop()
+	return m.currentSource.Stop()
 }
 func (m *Muzsikusch) Skip() error {
-	m.currentSource.skip()
+	m.currentSource.Skip()
 	if len(m.queue) > 0 {
 		m.queue = m.queue[1:]
 	}
@@ -52,22 +52,22 @@ func (m *Muzsikusch) Skip() error {
 	return nil
 }
 func (m *Muzsikusch) Resume() error {
-	return m.currentSource.resume()
+	return m.currentSource.Resume()
 }
 func (m *Muzsikusch) Forward(amm int) error {
-	return m.currentSource.forward(amm)
+	return m.currentSource.Forward(amm)
 }
 func (m *Muzsikusch) Reverse(amm int) error {
-	return m.currentSource.reverse(amm)
+	return m.currentSource.Reverse(amm)
 }
 func (m *Muzsikusch) SetVolume(vol int) error {
-	return m.currentSource.setVolume(vol)
+	return m.currentSource.SetVolume(vol)
 }
 func (m *Muzsikusch) GetVolume() (int, error) {
-	return m.currentSource.getVolume()
+	return m.currentSource.GetVolume()
 }
 func (m *Muzsikusch) Mute() error {
-	return m.currentSource.mute()
+	return m.currentSource.Mute()
 }
 
 func (m *Muzsikusch) RegisterSource(source Source) {
@@ -82,9 +82,9 @@ func (m *Muzsikusch) UnregisterSource(source Source) error {
 func (m *Muzsikusch) Search(query, source string) MusicID {
 	switch source {
 	case "spotify":
-		return m.spotifySource.search(query)
+		return m.spotifySource.Search(query)
 	case "youtube":
-		return m.youtubeSource.search(query)
+		return m.youtubeSource.Search(query)
 	default:
 		panic("Unknown source")
 	}
