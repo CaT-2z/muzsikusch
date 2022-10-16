@@ -6,9 +6,15 @@ import (
 )
 
 type YoutubeSource struct {
-	instance mpvipc.Connection
-	events   chan *mpvipc.Event
-	stopChan chan struct{}
+	instance           mpvipc.Connection
+	events             chan *mpvipc.Event
+	stopChan           chan struct{}
+	onPlaybackFinished func()
+	isActive           bool
+}
+
+func (s *YoutubeSource) register(cb func()) {
+	s.onPlaybackFinished = cb
 }
 
 func (s *YoutubeSource) play(musicID MusicID) error {
@@ -18,13 +24,18 @@ func (s *YoutubeSource) play(musicID MusicID) error {
 	}
 
 	_, err = s.instance.Call("loadfile", url)
+	if err == nil {
+		s.isActive = true
+	}
 	return err
 }
 func (s *YoutubeSource) stop() error {
+	s.isActive = false
 	_, err := s.instance.Call("stop")
 	return err
 }
 func (s *YoutubeSource) skip() error {
+	s.isActive = false
 	_, err := s.instance.Call("playlist-next", "force")
 	return err
 }
@@ -58,6 +69,16 @@ func (s *YoutubeSource) mute() error {
 
 func (s *YoutubeSource) search(query string) MusicID {
 	panic("Cannot search youtube")
+}
+
+// TODO: Stop listening to events if the program closes
+func (s *YoutubeSource) waitForEnd() {
+	for event := range s.events {
+		if event.Name == "end-file" && s.isActive {
+			s.onPlaybackFinished()
+			s.isActive = false
+		}
+	}
 }
 
 func getBestAudio(formats youtube.FormatList) youtube.Format {
