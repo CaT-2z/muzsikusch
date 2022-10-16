@@ -27,7 +27,7 @@ func (c *SpotifySource) Register(onPBFinished func()) {
 }
 
 func (c *SpotifySource) Play(music_id MusicID) error {
-	log.Printf("Playing %v\n", music_id.SpotifyURI)
+	log.Printf("Playing %v\n", music_id.spotify())
 	uri := music_id.spotify()
 	opt := spotify.PlayOptions{
 		DeviceID: &c.playerDevice,
@@ -121,7 +121,8 @@ func (c *SpotifySource) Search(query string) MusicID {
 	}
 	fmt.Printf("Found track %v\n", results.Tracks.Tracks[0].Name)
 	return MusicID{
-		SpotifyURI: string(results.Tracks.Tracks[0].URI),
+		spotifyURI: string(results.Tracks.Tracks[0].URI),
+		SourceName: "spotify",
 	}
 }
 

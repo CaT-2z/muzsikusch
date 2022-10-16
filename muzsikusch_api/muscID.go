@@ -7,8 +7,9 @@ import (
 )
 
 type MusicID struct {
-	SpotifyURI string
+	spotifyURI string
 	YoutubeID  string
+	SourceName string
 }
 
 func FromUser(query string, searcher *Muzsikusch, searchSource string) MusicID {
@@ -36,21 +37,23 @@ func FromUser(query string, searcher *Muzsikusch, searchSource string) MusicID {
 
 func FromSpotifyID(id string) MusicID {
 	return MusicID{
-		SpotifyURI: "spotify:track:" + id[:22],
+		spotifyURI: "spotify:track:" + id[:22],
+		SourceName: "spotify",
 	}
 }
 
 func FromYoutubeID(id string) MusicID {
 	return MusicID{
-		YoutubeID: id[:11],
+		YoutubeID:  id[:11],
+		SourceName: "youtube",
 	}
 }
 
 func (m MusicID) spotify() spotify.URI {
-	if m.SpotifyURI == "" {
+	if m.spotifyURI == "" {
 		panic("Attempted to call spotify() on a MusicID without a spotify URI")
 	}
-	return spotify.URI(m.SpotifyURI)
+	return spotify.URI(m.spotifyURI)
 }
 
 func (m MusicID) youtube() string {
@@ -65,7 +68,7 @@ func (m MusicID) isYoutube() bool {
 }
 
 func (m MusicID) isSpotify() bool {
-	return m.SpotifyURI != ""
+	return m.spotifyURI != ""
 }
 
 func isSpotifyID(query string) bool {

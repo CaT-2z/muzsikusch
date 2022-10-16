@@ -8,20 +8,18 @@ import (
 type Muzsikusch struct {
 	currentSource Source
 	queue         []MusicID
-	spotifySource *SpotifySource
-	youtubeSource *YoutubeSource
+	sources       map[string]Source
 }
 
 func (m *Muzsikusch) Play(music_ID MusicID) error {
-	if music_ID.isSpotify() {
-		m.currentSource = m.spotifySource
-		return m.spotifySource.Play(music_ID)
+	src, ok := m.sources[music_ID.SourceName]
+	if !ok {
+		return fmt.Errorf("Source %s not registered", music_ID.SourceName)
 	}
-	if music_ID.isYoutube() {
-		m.currentSource = m.youtubeSource
-		return m.youtubeSource.Play(music_ID)
-	}
-	return nil
+
+	m.currentSource = src
+
+	return src.Play(music_ID)
 }
 
 func (m *Muzsikusch) Enqueue(music_id MusicID) error {
@@ -70,24 +68,21 @@ func (m *Muzsikusch) Mute() error {
 	return m.currentSource.Mute()
 }
 
-func (m *Muzsikusch) RegisterSource(source Source) {
-
+func (m *Muzsikusch) RegisterSource(source Source, name string) {
+	m.sources[name] = source
 }
 
-func (m *Muzsikusch) UnregisterSource(source Source) error {
-	return nil
-
+func (m *Muzsikusch) UnregisterSource(name string) {
+	m.sources[name] = nil
 }
 
 func (m *Muzsikusch) Search(query, source string) MusicID {
-	switch source {
-	case "spotify":
-		return m.spotifySource.Search(query)
-	case "youtube":
-		return m.youtubeSource.Search(query)
-	default:
-		panic("Unknown source")
+	src, ok := m.sources[source]
+	if !ok {
+		log.Fatalf("Source %s not registered", source)
 	}
+
+	return src.Search(query)
 }
 
 func (m *Muzsikusch) OnPlaybackFinished() {
@@ -96,11 +91,7 @@ func (m *Muzsikusch) OnPlaybackFinished() {
 	if len(m.queue) > 0 {
 		m.Play(m.queue[0])
 
-		//TODO: Set current player
-		if m.queue[0].isSpotify() {
-			m.currentSource = m.spotifySource
-		} else if m.queue[0].isYoutube() {
-			m.currentSource = m.youtubeSource
-		}
+		// Set current player
+		m.currentSource = m.sources[m.queue[0].SourceName]
 	}
 }
