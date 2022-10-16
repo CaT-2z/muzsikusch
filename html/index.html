@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+    <meta charset='utf-8'>
+    <title>Muzsikusch</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+</head>
+<body>
+    <form action="/api/enqueue" method="post">
+        <input type="text" name="query" placeholder="Link/ID/Query"><br>
+        <!--Search: <input type="checkbox" name="is_search" id="is_search"><br>
+        <input type="radio" name="source" id="spotify" value="spotify">Spotify<br>
+        <input type="radio" name="source" id="youtube" value="youtube">Youtube<br>-->
+        <input type="submit" value="Search">
+    </form>
+    <form action="/api/pause">
+        <input type="submit" value="Pause">
+    </form>
+    <form action="/api/resume"><input type="submit" value="Resume"></form>
+    <form action="/api/skip"><input type="submit" value="Skip"></form>
+    <form action="/api/mute"><input type="submit" value="Mute"></form>
+    
+</body>
+</html>
