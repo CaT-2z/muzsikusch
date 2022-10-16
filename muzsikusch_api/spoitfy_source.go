@@ -65,9 +65,11 @@ func (c *SpotifySource) pause() error {
 }
 
 func (c *SpotifySource) stop() error {
+	c.waiterEnder()
 	return c.client.Pause(c.ctx)
 }
 func (c *SpotifySource) skip() error {
+	c.waiterEnder()
 	return c.client.Next(c.ctx)
 }
 func (c *SpotifySource) resume() error {
@@ -141,7 +143,7 @@ func (c *SpotifySource) discoverDevices() {
 func (c *SpotifySource) waitForEnd(ctx context.Context) {
 	log.Println("Waiter started")
 	const WAIT_PERC = 0.95
-	const WAIT_CUTOFF = 3 * 1000000 // 3 seconds
+	const WAIT_CUTOFF = 3 * time.Second
 
 	obj := c.dbusConn.Object("org.mpris.MediaPlayer2.spotify", "/org/mpris/MediaPlayer2")
 
@@ -174,28 +176,27 @@ func (c *SpotifySource) waitForEnd(ctx context.Context) {
 
 		dur := metadata["mpris:length"].Value().(uint64)
 
-		rem := dur - pos
-
-		fmt.Printf("Pos: %v/%v (%v)\n", pos, dur, rem)
+		rem := time.Duration(dur-pos) * time.Microsecond
+		log.Printf("Remaining: %v\n", rem)
 
 		//Wait
 		if pos == 0 && started {
 			log.Println("FINISHED POS==0")
 			c.onPlaybackFinished()
 			return
-		} else if rem < WAIT_CUTOFF && rem > 300000 {
+		} else if rem < WAIT_CUTOFF && rem > 300*time.Millisecond {
 			//Check every 0.1 seconds
 			started = true
 			log.Println("Waiting for 100ms")
 			time.Sleep(100 * time.Millisecond)
-		} else if rem < 30 {
+		} else if rem < 30*time.Nanosecond {
 			log.Println("FINISHED rem < 30")
 			c.onPlaybackFinished()
 			return
 		} else {
 			started = true
 			cap := 20 * time.Second
-			want := time.Duration(WAIT_PERC*float64(rem)) * time.Microsecond
+			want := time.Duration(WAIT_PERC * float64(rem))
 			wait := math.Min(float64(cap.Nanoseconds()), float64(want.Nanoseconds()))
 			log.Printf("Waiting for %v\n", time.Duration(wait))
 			time.Sleep(time.Duration(wait))
