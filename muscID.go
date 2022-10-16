@@ -1,31 +1,33 @@
 package main
 
 import (
+	"log"
 	"strings"
 
 	"github.com/zmb3/spotify/v2"
 )
 
 type MusicID struct {
-	spotifyURI string
-	YoutubeID  string
-	SourceName string
+	spotifyURI string `json:"-"`
+	YoutubeID  string `json:"-"`
+	SourceName string `json:"-"`
+	Title      string
 }
 
-func FromUser(query string, searcher *Muzsikusch, searchSource string) MusicID {
+func FromUser(query string, searcher *Muzsikusch, searchSource string, resolver TitleResolver) MusicID {
 	switch {
 	case strings.HasPrefix(query, "spotify:track:"):
-		return FromSpotifyID(query[len("spotify:track:"):])
+		return FromSpotifyID(query[len("spotify:track:"):], resolver)
 	case strings.HasPrefix(query, "https://open.spotify.com/track/"):
-		return FromSpotifyID(query[len("https://open.spotify.com/track/"):])
+		return FromSpotifyID(query[len("https://open.spotify.com/track/"):], resolver)
 	case strings.HasPrefix(query, "https://www.youtube.com/watch?v="):
-		return FromYoutubeID(query[len("https://www.youtube.com/watch?v="):])
+		return FromYoutubeID(query[len("https://www.youtube.com/watch?v="):], resolver)
 	case strings.HasPrefix(query, "https://youtu.be/"):
-		return FromYoutubeID(query[len("https://youtu.be/"):])
+		return FromYoutubeID(query[len("https://youtu.be/"):], resolver)
 	case isSpotifyID(query):
-		return FromSpotifyID(query)
+		return FromSpotifyID(query, resolver)
 	case isYoutubeID(query):
-		return FromYoutubeID(query)
+		return FromYoutubeID(query, resolver)
 	default:
 		//Search for the query
 		if searcher == nil {
@@ -35,18 +37,38 @@ func FromUser(query string, searcher *Muzsikusch, searchSource string) MusicID {
 	}
 }
 
-func FromSpotifyID(id string) MusicID {
-	return MusicID{
+func FromSpotifyID(id string, resolver TitleResolver) MusicID {
+	mid := MusicID{
 		spotifyURI: "spotify:track:" + id[:22],
 		SourceName: "spotify",
 	}
+
+	return *mid.ResolveTitle(resolver)
 }
 
-func FromYoutubeID(id string) MusicID {
-	return MusicID{
+func FromYoutubeID(id string, resolver TitleResolver) MusicID {
+	mid := MusicID{
 		YoutubeID:  id[:11],
 		SourceName: "youtube",
 	}
+
+	return *mid.ResolveTitle(resolver)
+}
+
+func (m *MusicID) ResolveTitle(resolver TitleResolver) *MusicID {
+	if resolver == nil {
+		return m
+	}
+
+	if m.Title == "" {
+		title, err := resolver.ResolveTitle(m)
+		if err != nil {
+			log.Printf("Error resolving title for %v: %v\n", m, err)
+			return m
+		}
+		m.Title = title
+	}
+	return m
 }
 
 func (m MusicID) spotify() spotify.URI {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/dexterlb/mpvipc"
@@ -97,6 +98,10 @@ func (s *MpvSource) GetVolume() (int, error) {
 func (s *MpvSource) Mute() error {
 	_, err := s.instance.Call("cycle", "mute")
 	return err
+}
+
+func (s *MpvSource) ResolveTitle(mid *MusicID) (string, error) {
+	return "", fmt.Errorf("cannot resolve title on mpv source")
 }
 
 // Wait for the playback to end.

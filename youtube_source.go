@@ -38,6 +38,19 @@ func (s *YoutubeSource) Search(query string) MusicID {
 	panic("Cannot search youtube")
 }
 
+func (s *YoutubeSource) ResolveTitle(musicID *MusicID) (string, error) {
+	if musicID.Title != "" {
+		return musicID.Title, nil
+	}
+
+	video, err := getVideo(musicID)
+	if err != nil {
+		return "", err
+	}
+
+	return video.Title, nil
+}
+
 func getBestAudio(formats youtube.FormatList) youtube.Format {
 	for _, format := range formats {
 		if format.AudioQuality == "AUDIO_QUALITY_MEDIUM" {
@@ -47,10 +60,14 @@ func getBestAudio(formats youtube.FormatList) youtube.Format {
 	return formats[0]
 }
 
-func getAudioURL(musicID MusicID) (string, error) {
-	id := musicID.youtube()
+func getVideo(m *MusicID) (*youtube.Video, error) {
+	id := m.youtube()
 	yt := &youtube.Client{}
-	video, err := yt.GetVideo(id)
+	return yt.GetVideo(id)
+}
+
+func getAudioURL(musicID MusicID) (string, error) {
+	video, err := getVideo(&musicID)
 	if err != nil {
 		return "", err
 	}
@@ -60,6 +77,7 @@ func getAudioURL(musicID MusicID) (string, error) {
 
 	best := getBestAudio(formats)
 
+	yt := &youtube.Client{}
 	//Only get audio stream
 	url, err := yt.GetStreamURL(video, &best)
 

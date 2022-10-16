@@ -123,7 +123,17 @@ func (c *SpotifySource) Search(query string) MusicID {
 	return MusicID{
 		spotifyURI: string(results.Tracks.Tracks[0].URI),
 		SourceName: "spotify",
+		Title:      results.Tracks.Tracks[0].Name,
 	}
+}
+
+func (c *SpotifySource) ResolveTitle(mid *MusicID) (string, error) {
+	track, err := c.client.GetTrack(c.ctx, spotify.ID(mid.spotify()))
+	if err != nil {
+		return "", err
+	}
+
+	return track.Name, nil
 }
 
 func (c *SpotifySource) discoverDevices() {

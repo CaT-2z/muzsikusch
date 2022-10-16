@@ -95,3 +95,16 @@ func (m *Muzsikusch) OnPlaybackFinished() {
 		m.currentSource = m.sources[m.queue[0].SourceName]
 	}
 }
+
+func (m *Muzsikusch) ResolveTitle(music_id *MusicID) (string, error) {
+	src, ok := m.sources[music_id.SourceName]
+	if !ok {
+		log.Fatalf("Source %s not registered", music_id.SourceName)
+	}
+
+	return src.ResolveTitle(music_id)
+}
+
+func (m *Muzsikusch) GetQueue() []MusicID {
+	return m.queue
+}
