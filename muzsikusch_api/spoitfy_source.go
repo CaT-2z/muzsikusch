@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/godbus/dbus/v5"
@@ -26,7 +27,7 @@ func (c *SpotifySource) register(onPBFinished func()) {
 }
 
 func (c *SpotifySource) play(music_id MusicID) error {
-	log.Printf("Playing %v\n", music_id.SpotifyID)
+	log.Printf("Playing %v\n", music_id.SpotifyURI)
 	uri := music_id.spotify()
 	opt := spotify.PlayOptions{
 		DeviceID: &c.playerDevice,
@@ -118,7 +119,7 @@ func (c *SpotifySource) search(query string) MusicID {
 	}
 	fmt.Printf("Found track %v\n", results.Tracks.Tracks[0].Name)
 	return MusicID{
-		SpotifyID: string(results.Tracks.Tracks[0].URI),
+		SpotifyURI: string(results.Tracks.Tracks[0].URI),
 	}
 }
 
@@ -193,8 +194,11 @@ func (c *SpotifySource) waitForEnd(ctx context.Context) {
 			return
 		} else {
 			started = true
-			log.Printf("Waiting for %v\n", time.Duration(float64(rem)*WAIT_PERC)*time.Microsecond)
-			time.Sleep(time.Duration(float64(rem)*WAIT_PERC) * time.Microsecond)
+			cap := 20 * time.Second
+			want := time.Duration(WAIT_PERC*float64(rem)) * time.Microsecond
+			wait := math.Min(float64(cap.Nanoseconds()), float64(want.Nanoseconds()))
+			log.Printf("Waiting for %v\n", time.Duration(wait))
+			time.Sleep(time.Duration(wait))
 		}
 
 	}

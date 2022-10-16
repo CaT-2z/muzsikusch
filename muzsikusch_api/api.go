@@ -3,46 +3,23 @@ package main
 import (
 	"fmt"
 	"log"
-
-	"github.com/zmb3/spotify/v2"
 )
 
 type Muzsikusch struct {
 	currentSource Source
 	queue         []MusicID
 	spotifySource *SpotifySource
-}
-
-type MusicID struct {
-	SpotifyID string
-	YoutubeID string
-}
-
-func FromSpotifyID(id string) MusicID {
-	return MusicID{
-		SpotifyID: "spotify:track:" + id,
-	}
-}
-
-func (m MusicID) spotify() spotify.URI {
-	return spotify.URI(m.SpotifyID)
-}
-
-func (m MusicID) youtube() string {
-	return m.YoutubeID
-}
-
-func (m MusicID) isYoutube() bool {
-	return m.YoutubeID != ""
-}
-
-func (m MusicID) isSpotify() bool {
-	return true
+	youtubeSource *YoutubeSource
 }
 
 func (m *Muzsikusch) Play(music_ID MusicID) error {
 	if music_ID.isSpotify() {
+		m.currentSource = m.spotifySource
 		return m.spotifySource.play(music_ID)
+	}
+	if music_ID.isYoutube() {
+		m.currentSource = m.youtubeSource
+		return m.youtubeSource.play(music_ID)
 	}
 	return nil
 }
@@ -107,11 +84,10 @@ func (m *Muzsikusch) Search(query, source string) MusicID {
 	case "spotify":
 		return m.spotifySource.search(query)
 	case "youtube":
-		//return m.youtubeSource.search(query)
+		return m.youtubeSource.search(query)
 	default:
 		panic("Unknown source")
 	}
-	return MusicID{}
 }
 
 func (m *Muzsikusch) OnPlaybackFinished() {
@@ -121,5 +97,10 @@ func (m *Muzsikusch) OnPlaybackFinished() {
 		m.Play(m.queue[0])
 
 		//TODO: Set current player
+		if m.queue[0].isSpotify() {
+			m.currentSource = m.spotifySource
+		} else if m.queue[0].isYoutube() {
+			m.currentSource = m.youtubeSource
+		}
 	}
 }

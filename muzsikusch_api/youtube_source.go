@@ -1,14 +1,14 @@
 package main
 
 import (
-	"log"
-
 	"github.com/dexterlb/mpvipc"
 	"github.com/kkdai/youtube/v2"
 )
 
 type YoutubeSource struct {
 	instance mpvipc.Connection
+	events   chan *mpvipc.Event
+	stopChan chan struct{}
 }
 
 func (s *YoutubeSource) play(musicID MusicID) error {
@@ -16,16 +16,6 @@ func (s *YoutubeSource) play(musicID MusicID) error {
 	if err != nil {
 		return err
 	}
-
-	events, _ := s.instance.NewEventListener()
-
-	go func() {
-		for event := range events {
-			if event.Name == "end-file" {
-				log.Println("End of file")
-			}
-		}
-	}()
 
 	_, err = s.instance.Call("loadfile", url)
 	return err
@@ -64,6 +54,10 @@ func (s *YoutubeSource) getVolume() (int, error) {
 func (s *YoutubeSource) mute() error {
 	_, err := s.instance.Call("cycle", "mute")
 	return err
+}
+
+func (s *YoutubeSource) search(query string) MusicID {
+	panic("Cannot search youtube")
 }
 
 func getBestAudio(formats youtube.FormatList) youtube.Format {
