@@ -12,6 +12,7 @@ import (
 
 	"github.com/godbus/dbus/v5"
 	"github.com/zmb3/spotify/v2"
+	spotifyauth "github.com/zmb3/spotify/v2/auth"
 	"golang.org/x/oauth2"
 )
 
@@ -26,7 +27,7 @@ type SpotifySource struct {
 	waiterEnder        context.CancelFunc
 }
 
-func NewSpotifySource(tokenPath string) *SpotifySource {
+func NewSpotifyFromToken(tokenPath string) *SpotifySource {
 	conn, err := dbus.ConnectSessionBus()
 	if err != nil {
 		panic(err)
@@ -36,11 +37,53 @@ func NewSpotifySource(tokenPath string) *SpotifySource {
 		panic(err)
 	}
 
+	auth := spotifyauth.New(
+		spotifyauth.WithRedirectURL(redirectURI),
+		spotifyauth.WithScopes(
+			spotifyauth.ScopeUserReadPlaybackState,
+			spotifyauth.ScopeUserModifyPlaybackState,
+		),
+	)
+
 	src := &SpotifySource{
 		client:   spotify.New(auth.Client(context.Background(), &tok)),
 		ctx:      context.Background(),
 		dbusConn: conn,
 	}
+
+	return src
+}
+
+func NewSpotifyWithAuth() *SpotifySource {
+	conn, err := dbus.ConnectSessionBus()
+	if err != nil {
+		panic(err)
+	}
+
+	src := &SpotifySource{
+		ctx:      context.Background(),
+		dbusConn: conn,
+	}
+
+	//Preform auth
+	auth := spotifyauth.New(
+		spotifyauth.WithRedirectURL(redirectURI),
+		spotifyauth.WithScopes(
+			spotifyauth.ScopeUserReadPlaybackState,
+			spotifyauth.ScopeUserModifyPlaybackState,
+		),
+	)
+
+	//TODO: Randomize state
+	state := "ABC123"
+	url := auth.AuthURL(state)
+	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
+
+	//Set up listener
+
+	client := waitForAuth(state, auth)
+
+	src.client = client
 
 	return src
 }
