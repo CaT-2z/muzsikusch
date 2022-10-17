@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 type HttpAPI struct {
@@ -35,30 +34,29 @@ func (api *HttpAPI) getQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Couldn't parse form1", http.StatusBadRequest)
+	type addRequest struct {
+		Query string `json:"query"`
+	}
+
+	var req addRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Couldn't parse request", http.StatusBadRequest)
 		return
 	}
 
-	querys, ok := r.Form["query"]
-	if !ok {
-		http.Error(w, "Couldn't parse form2", http.StatusBadRequest)
+	query := req.Query
+	if query == "" {
+		http.Error(w, "No title given", http.StatusBadRequest)
 		return
 	}
-
-	query := querys[0]
-
-	/*source, err := r.Form["source"]
-	if !err {
-		http.Error(w, "Couldn't parse form3", http.StatusBadRequest)
-		return
-	}*/
 
 	source := "spotify"
 
 	musicid := FromUser(query, api.player, source, api.player)
 
-	err := api.player.Enqueue(musicid)
+	err = api.player.Enqueue(musicid)
 	if err != nil {
 		log.Printf("Failed to enqueue: %v\n", err)
 		http.Error(w, "Couldn't enqueue", http.StatusInternalServerError)
@@ -86,20 +84,11 @@ func (api *HttpAPI) getVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *HttpAPI) setVolume(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Couldn't parse form1", http.StatusBadRequest)
-		return
-	}
+	var volume int
+	err := json.NewDecoder(r.Body).Decode(&volume)
 
-	volumes, ok := r.Form["volume"]
-	if !ok {
-		http.Error(w, "Couldn't parse form2", http.StatusBadRequest)
-		return
-	}
-
-	volume, err := strconv.Atoi(volumes[0])
 	if err != nil {
-		http.Error(w, "Couldn't parse form3", http.StatusBadRequest)
+		http.Error(w, "Couldn't parse request", http.StatusBadRequest)
 		return
 	}
 
