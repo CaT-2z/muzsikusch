@@ -44,6 +44,7 @@ func (m *Muzsikusch) Pause() error {
 	return m.currentSource.Pause()
 }
 func (m *Muzsikusch) Stop() error {
+	m.queue = m.queue[:0]
 	return m.currentSource.Stop()
 }
 func (m *Muzsikusch) Skip() error {
