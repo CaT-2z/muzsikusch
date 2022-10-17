@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math"
+	"os"
 	"time"
 
 	"github.com/godbus/dbus/v5"
 	"github.com/zmb3/spotify/v2"
+	"golang.org/x/oauth2"
 )
 
 // Source
@@ -20,6 +24,25 @@ type SpotifySource struct {
 	onPlaybackFinished func()
 	dbusConn           *dbus.Conn
 	waiterEnder        context.CancelFunc
+}
+
+func NewSpotifySource(tokenPath string) *SpotifySource {
+	conn, err := dbus.ConnectSessionBus()
+	if err != nil {
+		panic(err)
+	}
+	tok, err := getSpotifyToken(tokenPath)
+	if err != nil {
+		panic(err)
+	}
+
+	src := &SpotifySource{
+		client:   spotify.New(auth.Client(context.Background(), &tok)),
+		ctx:      context.Background(),
+		dbusConn: conn,
+	}
+
+	return src
 }
 
 func (c *SpotifySource) Register(onPBFinished func()) {
@@ -205,4 +228,50 @@ func (c *SpotifySource) waitForEnd(ctx context.Context) {
 		}
 
 	}
+}
+
+func (c *SpotifySource) SaveToken(tokenPath string) {
+	tok, err := c.client.Token()
+	if err != nil {
+		log.Printf("Cannot save token: %v\n", err)
+		return
+	}
+
+	js, err := json.Marshal(tok)
+	if err != nil {
+		log.Printf("Cannot save token: %v\n", err)
+		return
+	}
+
+	err = os.WriteFile(tokenPath, js, 0600)
+	if err != nil {
+		log.Printf("Cannot save token: %v\n", err)
+		return
+	}
+
+	log.Println("Saved token")
+}
+
+func getSpotifyToken(tokenPath string) (oauth2.Token, error) {
+	var token oauth2.Token
+
+	//Check if we have a token
+	tokenFile, err := os.Open(tokenPath)
+	if err != nil {
+		return token, err
+	}
+
+	//Read token
+	tokenBytes, err := io.ReadAll(tokenFile)
+	if err != nil {
+		return token, err
+	}
+
+	//Parse token
+	err = json.Unmarshal(tokenBytes, &token)
+	if err != nil {
+		return token, err
+	}
+
+	return token, nil
 }
