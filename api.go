@@ -9,6 +9,7 @@ type Muzsikusch struct {
 	currentSource Source
 	queue         []MusicID
 	sources       map[string]Source
+	resolvers     map[string]TitleResolver
 }
 
 func (m *Muzsikusch) Play(music_ID MusicID) error {
@@ -76,6 +77,14 @@ func (m *Muzsikusch) UnregisterSource(name string) {
 	m.sources[name] = nil
 }
 
+func (m *Muzsikusch) RegisterResolver(resolver TitleResolver, name string) {
+	m.resolvers[name] = resolver
+}
+
+func (m *Muzsikusch) UnregisterResolver(name string) {
+	m.resolvers[name] = nil
+}
+
 func (m *Muzsikusch) Search(query, source string) MusicID {
 	src, ok := m.sources[source]
 	if !ok {
@@ -97,12 +106,12 @@ func (m *Muzsikusch) OnPlaybackFinished() {
 }
 
 func (m *Muzsikusch) ResolveTitle(music_id *MusicID) (string, error) {
-	src, ok := m.sources[music_id.SourceName]
+	resolver, ok := m.resolvers[music_id.SourceName]
 	if !ok {
-		log.Fatalf("Source %s not registered", music_id.SourceName)
+		log.Fatalf("Resolver %s not registered", music_id.SourceName)
 	}
 
-	return src.ResolveTitle(music_id)
+	return resolver.ResolveTitle(music_id)
 }
 
 func (m *Muzsikusch) GetQueue() []MusicID {

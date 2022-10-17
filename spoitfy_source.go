@@ -152,7 +152,6 @@ func (c *SpotifySource) discoverDevices() {
 }
 
 func (c *SpotifySource) waitForEnd(ctx context.Context) {
-	log.Println("Waiter started")
 	const WAIT_PERC = 0.95
 	const WAIT_CUTOFF = 3 * time.Second
 
@@ -188,24 +187,20 @@ func (c *SpotifySource) waitForEnd(ctx context.Context) {
 		dur := metadata["mpris:length"].Value().(uint64)
 
 		rem := time.Duration(dur-pos) * time.Microsecond
-		log.Printf("Remaining: %v\n", rem)
 
 		//Wait
 		if pos == 0 && started {
-			log.Println("FINISHED POS==0")
 			c.onPlaybackFinished()
 			return
 		} else if rem < WAIT_CUTOFF && rem > 300*time.Millisecond {
 			//Check every 0.1 seconds
 			started = true
-			log.Println("Waiting for 100ms")
 			time.Sleep(100 * time.Millisecond)
 		} else {
 			started = true
 			cap := 20 * time.Second
 			want := time.Duration(WAIT_PERC * float64(rem))
 			wait := math.Min(float64(cap.Nanoseconds()), float64(want.Nanoseconds()))
-			log.Printf("Waiting for %v\n", time.Duration(wait))
 			time.Sleep(time.Duration(wait))
 		}
 

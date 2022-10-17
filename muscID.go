@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -91,6 +92,14 @@ func (m MusicID) isYoutube() bool {
 
 func (m MusicID) isSpotify() bool {
 	return m.spotifyURI != ""
+}
+
+func (m *MusicID) String() string {
+	if m.Title != "" {
+		return m.Title
+	}
+
+	return fmt.Sprintf("Unknown %s track", m.SourceName)
 }
 
 func isSpotifyID(query string) bool {

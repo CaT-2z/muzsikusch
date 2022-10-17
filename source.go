@@ -13,5 +13,4 @@ type Source interface {
 	Mute() error
 	Register(func())
 	Search(string) MusicID
-	TitleResolver
 }
