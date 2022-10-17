@@ -12,6 +12,13 @@ type Muzsikusch struct {
 	resolvers     map[string]TitleResolver
 }
 
+func NewMuzsikusch() *Muzsikusch {
+	return &Muzsikusch{
+		sources:   make(map[string]Source),
+		resolvers: make(map[string]TitleResolver),
+	}
+}
+
 func (m *Muzsikusch) Play(music_ID MusicID) error {
 	src, ok := m.sources[music_ID.SourceName]
 	if !ok {

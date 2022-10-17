@@ -91,7 +91,7 @@ func (s *MpvSource) GetVolume() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return vol.(int), nil
+	return int(vol.(float64)), nil
 }
 
 // Toggle mute the player
