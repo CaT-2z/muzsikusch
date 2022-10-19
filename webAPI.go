@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 )
 
 type HttpAPI struct {
@@ -108,16 +109,28 @@ func (api *HttpAPI) setVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *HttpAPI) registerHandles() {
-	queueEndpoint := EmptyEndpoint().WithGet(api.getQueue).WithPost(api.addToQueue)
-	http.Handle("/api/queue", queueEndpoint)
+	passwords, err := os.Open("passwords.json")
+	if err != nil {
+		panic(err)
+	}
 
-	http.Handle("/api/resume", SimpleEndpoint(api.player.Resume))
-	http.Handle("/api/pause", SimpleEndpoint(api.player.Pause))
-	http.Handle("/api/skip", SimpleEndpoint(api.player.Skip))
-	http.Handle("/api/mute", SimpleEndpoint(api.player.Mute))
-	http.Handle("/api/stop", SimpleEndpoint(api.player.Stop))
+	validator, err := NewBasicPasswordValidator(passwords)
+	if err != nil {
+		panic(err)
+	}
+
+	auth := NewBasicAuthenticator("muzsikusch", validator)
+
+	queueEndpoint := EmptyEndpoint().WithGet(api.getQueue).WithPost(api.addToQueue)
+	http.Handle("/api/queue", auth.Wrap(queueEndpoint))
+
+	http.Handle("/api/resume", auth.Wrap(SimpleEndpoint(api.player.Resume)))
+	http.Handle("/api/pause", auth.Wrap(SimpleEndpoint(api.player.Pause)))
+	http.Handle("/api/skip", auth.Wrap(SimpleEndpoint(api.player.Skip)))
+	http.Handle("/api/mute", auth.Wrap(SimpleEndpoint(api.player.Mute)))
+	http.Handle("/api/stop", auth.Wrap(SimpleEndpoint(api.player.Stop)))
 	//TODO: Seek
-	http.Handle("/api/volume", GetEndpoint(api.getVolume).WithPost(api.setVolume))
+	http.Handle("/api/volume", auth.Wrap(GetEndpoint(api.getVolume).WithPost(api.setVolume)))
 	http.Handle("/api/", http.NotFoundHandler())
 
 	http.Handle("/", http.FileServer(http.Dir("html")))
