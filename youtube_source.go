@@ -16,9 +16,12 @@ func NewYoutubeSource() *YoutubeSource {
 		panic(err)
 	}
 
-	return &YoutubeSource{
+	src := &YoutubeSource{
 		MpvSource: *mpv,
 	}
+	go src.waitForEnd(context.Background())
+
+	return src
 }
 
 func (s *YoutubeSource) Play(musicID MusicID) error {

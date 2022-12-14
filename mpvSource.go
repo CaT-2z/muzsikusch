@@ -10,6 +10,8 @@ import (
 
 // Base for a source based on mvp.
 // Implement the Play and Search methods to use as a source.
+// DO NOT forget to call waitForEnd in the constructor.
+// TODO: Maybe we can do this automatically?
 type MpvSource struct {
 	instance           mpvipc.Connection
 	events             chan *mpvipc.Event
@@ -35,7 +37,8 @@ func NewMpvSource(path string, ctx context.Context) (*MpvSource, error) {
 		stopChan: closer,
 	}
 
-	go src.waitForEnd(ctx)
+	//This CANNOT be called here, because of Go's "inheritance" system.
+	//go src.waitForEnd(ctx)
 
 	return src, nil
 }
