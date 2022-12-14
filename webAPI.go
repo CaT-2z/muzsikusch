@@ -17,9 +17,20 @@ func NewHttpAPI() *HttpAPI {
 	}
 }
 
+func (api *HttpAPI) startSecureServer(chainPath, privkeyPath string) {
+	api.registerHandles()
+	err := http.ListenAndServeTLS(":443", chainPath, privkeyPath, nil)
+	if err != nil {
+		log.Printf("Failed to serve and listen: %v\n", err)
+	}
+}
+
 func (api *HttpAPI) startServer() {
 	api.registerHandles()
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":80", nil)
+	if err != nil {
+		log.Printf("Failed to serve and listen: %v\n", err)
+	}
 }
 
 func (api *HttpAPI) getQueue(w http.ResponseWriter, r *http.Request) {
@@ -62,7 +73,7 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to enqueue: %v\n", err)
 		http.Error(w, "Couldn't enqueue", http.StatusInternalServerError)
 	} else {
-		//Maybe send something back?
+		// Maybe send something back?
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -87,7 +98,6 @@ func (api *HttpAPI) getVolume(w http.ResponseWriter, r *http.Request) {
 func (api *HttpAPI) setVolume(w http.ResponseWriter, r *http.Request) {
 	var volume int
 	err := json.NewDecoder(r.Body).Decode(&volume)
-
 	if err != nil {
 		http.Error(w, "Couldn't parse request", http.StatusBadRequest)
 		return
@@ -103,7 +113,7 @@ func (api *HttpAPI) setVolume(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to set volume: %v\n", err)
 		http.Error(w, "Couldn't set volume", http.StatusInternalServerError)
 	} else {
-		//Maybe send something back?
+		// Maybe send something back?
 		w.WriteHeader(http.StatusCreated)
 	}
 }
@@ -129,10 +139,9 @@ func (api *HttpAPI) registerHandles() {
 	http.Handle("/api/skip", auth.Wrap(SimpleEndpoint(api.player.Skip)))
 	http.Handle("/api/mute", auth.Wrap(SimpleEndpoint(api.player.Mute)))
 	http.Handle("/api/stop", auth.Wrap(SimpleEndpoint(api.player.Stop)))
-	//TODO: Seek
+	// TODO: Seek
 	http.Handle("/api/volume", auth.Wrap(GetEndpoint(api.getVolume).WithPost(api.setVolume)))
 	http.Handle("/api/", http.NotFoundHandler())
 
 	http.Handle("/", http.FileServer(http.Dir("html")))
-
 }

@@ -6,7 +6,7 @@
     <script src="/player.js"></script>
 </head>
 <body>
-    <input type="text" name="" id="query">
+    <input type="text" name="" id="query" onkeydown="if (event.keyCode == 13) { enqueue(); return false; }">
     <button onclick="enqueue()">Play</button>
 
     <button onclick="action('pause')">Pause</button>

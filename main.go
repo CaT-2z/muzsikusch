@@ -2,22 +2,12 @@ package main
 
 import (
 	"os"
-
-	"github.com/dexterlb/mpvipc"
 )
 
 const redirectURI = "http://localhost:8080/callback"
 
 func main() {
-	mpv := mpvipc.NewConnection("/tmp/mpvsocket")
-	err := mpv.Open()
-	if err != nil {
-		panic(err)
-	}
-
 	spotSource := NewSpotifyFromToken(os.Getenv("SPOTIFY_TOKEN_PATH"))
-	//spotSource := NewSpotifyWithAuth()
-	defer spotSource.SaveToken(os.Getenv("SPOTIFY_TOKEN_PATH"))
 	youtubeSource := NewYoutubeSource()
 
 	api := NewHttpAPI()
