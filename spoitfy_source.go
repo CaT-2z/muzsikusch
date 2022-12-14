@@ -194,8 +194,10 @@ func (c *SpotifySource) Search(query string) MusicID {
 }
 
 func (c *SpotifySource) ResolveTitle(mid *MusicID) (string, error) {
-	track, err := c.client.GetTrack(c.ctx, spotify.ID(mid.spotify()))
+	id := spotify.ID(mid.spotify()[14:])
+	track, err := c.client.GetTrack(c.ctx, id)
 	if err != nil {
+		log.Printf("Error resolving title: %v\n", err)
 		return "", err
 	}
 
