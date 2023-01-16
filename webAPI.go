@@ -66,7 +66,7 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 
 	source := "spotify"
 
-	musicid := FromUser(query, api.player, source, api.player)
+	musicid := FromUser(query, api.player, source)
 
 	err = api.player.Enqueue(musicid)
 	if err != nil {

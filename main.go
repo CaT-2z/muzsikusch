@@ -7,17 +7,12 @@ import (
 const redirectURI = "http://localhost:8080/callback"
 
 func main() {
-	spotSource := NewSpotifyFromToken(os.Getenv("SPOTIFY_TOKEN_PATH"))
-	youtubeSource := NewYoutubeSource()
+	os.Setenv("SOUNDCLOUD_TOKEN_PATH", "./soundcloud_token.json")
 
 	api := NewHttpAPI()
-	api.player.RegisterSource(spotSource, "spotify")
-	api.player.RegisterSource(youtubeSource, "youtube")
-	api.player.RegisterResolver(spotSource, "spotify")
-	api.player.RegisterResolver(youtubeSource, "youtube")
-
-	spotSource.Register(api.player.OnPlaybackFinished)
-	youtubeSource.Register(api.player.OnPlaybackFinished)
+	api.player.SetupSource(NewSpotifyFromToken(os.Getenv("SPOTIFY_TOKEN_PATH")))
+	api.player.SetupSource(NewYoutubeSource())
+	api.player.SetupSource(NewSoundcloudSource())
 
 	api.startServer()
 }
