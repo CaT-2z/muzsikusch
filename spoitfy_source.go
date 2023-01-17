@@ -190,17 +190,25 @@ func (c *SpotifySource) Mute() error {
 	}
 }
 
-func (c *SpotifySource) Search(query string) MusicID {
+// I don't think you can specify the number of results in Spotify search
+func (c *SpotifySource) Search(query string) []MusicID {
 	results, err := c.client.Search(c.ctx, query, spotify.SearchTypeTrack)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Found track %v\n", results.Tracks.Tracks[0].Name)
-	return MusicID{
-		trackID:    string(results.Tracks.Tracks[0].URI),
-		SourceName: "spotify",
-		Title:      results.Tracks.Tracks[0].Name,
+
+	tracks := make([]MusicID, 5)
+
+	for i, song := range results.Tracks.Tracks {
+		tracks[i] = MusicID{
+			trackID:    string(song.URI),
+			SourceName: "spotify",
+			Title:      song.Name,
+		}
 	}
+
+	return tracks
 }
 
 func (c *SpotifySource) ResolveTitle(mid *MusicID) (string, error) {

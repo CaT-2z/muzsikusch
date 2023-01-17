@@ -169,8 +169,49 @@ func (c *SoundcloudSource) GetTrackInfo(url string) (info SoundcloudTrackInfo, e
 	return
 }
 
-func (c *SoundcloudSource) Search(string) MusicID {
-	panic("Search not yet implemented for soundcloud")
+func (c *SoundcloudSource) Search(query string) []MusicID {
+	client := &http.Client{}
+
+	request, err := http.NewRequest("GET", "https://api-v2.soundcloud.com/search?q="+query+"&limit=5", nil)
+	if err != nil {
+		return []MusicID{}
+	}
+	request.Header.Set("Authorization", c.oauth)
+
+	res, err := client.Do(request)
+	if err != nil {
+		return []MusicID{}
+	}
+
+	all, err := io.ReadAll(res.Body)
+	if err != nil {
+		return []MusicID{}
+	}
+
+	//A response would have more fields, but this is all we need
+	var results struct {
+		Collection []SoundcloudTrackInfo `json:"collection"`
+	}
+
+	err = json.Unmarshal(all, &results)
+	if err != nil {
+		return []MusicID{}
+	}
+
+	var ret []MusicID
+	for _, song := range results.Collection {
+		if song.Kind == "track" {
+			ret[len(ret)] = MusicID{
+				trackID:    song.Urn[len("soundcloud:tracks:"):],
+				SourceName: "soundcloud",
+				Title:      song.Title,
+			}
+		}
+	}
+
+	res.Body.Close()
+
+	return ret
 }
 
 func (c *SoundcloudSource) BelongsToThis(query string) (bool, MusicID) {
@@ -181,7 +222,7 @@ func (c *SoundcloudSource) BelongsToThis(query string) (bool, MusicID) {
 			return false, MusicID{}
 		}
 		return true, MusicID{
-			trackID:    info.Urn[len(info.Urn)-9:],
+			trackID:    info.Urn[len("soundcloud:tracks:"):],
 			SourceName: "soundcloud",
 			Title:      info.Title,
 		}
@@ -191,7 +232,7 @@ func (c *SoundcloudSource) BelongsToThis(query string) (bool, MusicID) {
 			return false, MusicID{}
 		}
 		return true, MusicID{
-			trackID:    info.Urn[len(info.Urn)-9:],
+			trackID:    info.Urn[len("soundcloud:tracks:"):],
 			SourceName: "soundcloud",
 			Title:      info.Title,
 		}

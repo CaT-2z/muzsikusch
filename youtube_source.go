@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"strings"
 
 	"github.com/kkdai/youtube/v2"
@@ -10,6 +14,7 @@ import (
 
 type YoutubeSource struct {
 	MpvSource
+	APIKey string
 }
 
 func NewYoutubeSource() (src *YoutubeSource, name string, err error) {
@@ -31,7 +36,66 @@ func NewYoutubeSource() (src *YoutubeSource, name string, err error) {
 	src = &YoutubeSource{
 		MpvSource: *mpv,
 	}
+
+	otherErr := src.GetAPIKey()
+	if otherErr != nil {
+		fmt.Println("Search via youtube disabled, reason:", otherErr)
+	}
+
 	go src.waitForEnd(context.Background())
+
+	return
+}
+
+// if it returns with an error, the APIKey field will be set to an empty string
+func (s *YoutubeSource) GetAPIKey() error {
+
+	APIFile, err := os.Open(os.Getenv("SOUNDCLOUD_TOKEN_PATH"))
+	if err != nil {
+		return err
+	}
+
+	APIBytes, err := io.ReadAll(APIFile)
+	if err != nil {
+		return err
+	}
+
+	var token struct {
+		Api string `json:"api"`
+	}
+
+	json.Unmarshal(APIBytes, &token)
+
+	s.APIKey = token.Api
+
+	err = s.CheckAPIKey()
+	if err != nil {
+		s.APIKey = ""
+		return err
+	}
+
+	return err
+}
+
+func (s *YoutubeSource) CheckAPIKey() (err error) {
+	client := &http.Client{}
+
+	//Is there a better request to test this with?
+	req, err := http.NewRequest("GET", "https://www.googleapis.com/youtube/v3/search?part=snippet&key="+s.APIKey+"&type=video&q=cats", nil)
+	if err != nil {
+		return
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		err = fmt.Errorf("Couldn't verify APIKey, response code: %d", res.StatusCode)
+	}
 
 	return
 }
@@ -49,8 +113,42 @@ func (s *YoutubeSource) Play(musicID MusicID) error {
 	return err
 }
 
-func (s *YoutubeSource) Search(query string) MusicID {
-	panic("Cannot search youtube")
+func (s *YoutubeSource) Search(query string) []MusicID {
+	if s.APIKey == "" {
+		return []MusicID{}
+	}
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "https://www.googleapis.com/youtube/v3/search?part=snippet&key="+s.APIKey+"&type=video&q="+query, nil)
+	if err != nil {
+		return []MusicID{}
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		return []MusicID{}
+	}
+
+	all, err := io.ReadAll(res.Body)
+	if err != nil {
+		return []MusicID{}
+	}
+
+	defer res.Body.Close()
+
+	var results YoutubeResponse
+	json.Unmarshal(all, &results)
+
+	var ret []MusicID
+	for i, song := range results.Items {
+		ret[i] = MusicID{
+			trackID:    song.ID.VideoID,
+			SourceName: "youtube",
+			Title:      song.Snippet.Title,
+		}
+	}
+
+	return ret
 }
 
 func (s *YoutubeSource) ResolveTitle(musicID *MusicID) (string, error) {
