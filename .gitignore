@@ -4,4 +4,8 @@ spotify_token.json
 soundcloud_token.json
 .vscode/
 passwords.json
+<<<<<<< Updated upstream
 passwordHashCreator
+=======
+passwordHashCreator
+>>>>>>> Stashed changes

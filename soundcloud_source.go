@@ -52,9 +52,38 @@ func NewSoundcloudSource() (src *SoundcloudSource, name string, err error) {
 		oauth:     token.Token,
 	}
 
+	err = src.CheckOAuth()
+	if err != nil {
+		panic(err)
+	}
+
 	go src.waitForEnd(context.Background())
 
 	return
+}
+
+func (c *SoundcloudSource) CheckOAuth() (err error) {
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "https://api-widget.soundcloud.com/resolve?url=https://api.soundcloud.com/tracks/70796888&format=json", nil)
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Authorization", c.oauth)
+
+	res, err := client.Do(req)
+	if err != nil {
+		return
+	}
+
+	if res.StatusCode != 200 {
+		err = fmt.Errorf("Couldn't verify OAuth, response code: %d", res.StatusCode)
+	}
+
+	return
+
 }
 
 func (c *SoundcloudSource) Play(m MusicID) error {
