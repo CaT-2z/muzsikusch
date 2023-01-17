@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -119,7 +120,7 @@ func (s *YoutubeSource) Search(query string) []MusicID {
 	}
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "https://www.googleapis.com/youtube/v3/search?part=snippet&key="+s.APIKey+"&type=video&q="+query, nil)
+	req, err := http.NewRequest("GET", "https://www.googleapis.com/youtube/v3/search?part=snippet&key="+s.APIKey+"&type=video&q="+url.QueryEscape(query), nil)
 	if err != nil {
 		return []MusicID{}
 	}
@@ -139,13 +140,13 @@ func (s *YoutubeSource) Search(query string) []MusicID {
 	var results YoutubeResponse
 	json.Unmarshal(all, &results)
 
-	var ret []MusicID
-	for i, song := range results.Items {
-		ret[i] = MusicID{
+	ret := make([]MusicID, 0)
+	for _, song := range results.Items {
+		ret = append(ret, MusicID{
 			trackID:    song.ID.VideoID,
 			SourceName: "youtube",
 			Title:      song.Snippet.Title,
-		}
+		})
 	}
 
 	return ret

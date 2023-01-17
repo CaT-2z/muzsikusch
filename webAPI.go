@@ -69,7 +69,10 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 	musicidResults := FromUser(query, api.player)
 
 	//TODO: this is still bad but its now localised here. Make a better search
-	musicid := musicidResults[0]
+	var musicid MusicID
+	if len(musicidResults) > 0 {
+		musicid = musicidResults[0]
+	}
 	if len(musicidResults) > 1 {
 		for _, song := range musicidResults {
 			if song.SourceName == "spotify" {

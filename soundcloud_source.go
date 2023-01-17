@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -171,7 +172,7 @@ func (c *SoundcloudSource) GetTrackInfo(url string) (info SoundcloudTrackInfo, e
 func (c *SoundcloudSource) Search(query string) []MusicID {
 	client := &http.Client{}
 
-	request, err := http.NewRequest("GET", "https://api-v2.soundcloud.com/search?q="+query+"&limit=5", nil)
+	request, err := http.NewRequest("GET", "https://api-v2.soundcloud.com/search?q="+url.QueryEscape(query)+"&limit=5", nil)
 	if err != nil {
 		return []MusicID{}
 	}
@@ -197,14 +198,14 @@ func (c *SoundcloudSource) Search(query string) []MusicID {
 		return []MusicID{}
 	}
 
-	var ret []MusicID
+	ret := make([]MusicID, 0)
 	for _, song := range results.Collection {
 		if song.Kind == "track" {
-			ret[len(ret)] = MusicID{
+			ret = append(ret, MusicID{
 				trackID:    song.Urn[len("soundcloud:tracks:"):],
 				SourceName: "soundcloud",
 				Title:      song.Title,
-			}
+			})
 		}
 	}
 

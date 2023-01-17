@@ -96,7 +96,7 @@ func (m *Muzsikusch) UnregisterResolver(name string) {
 // TODO: Change this too
 func (m *Muzsikusch) Search(query string) []MusicID {
 
-	var results []MusicID
+	results := make([]MusicID, 0)
 	for _, source := range m.sources {
 		results = append(results, source.Search(query)...)
 	}
