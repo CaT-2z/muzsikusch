@@ -94,13 +94,14 @@ func (m *Muzsikusch) UnregisterResolver(name string) {
 }
 
 // TODO: Change this too
-func (m *Muzsikusch) Search(query, source string) MusicID {
-	src, ok := m.sources[source]
-	if !ok {
-		log.Fatalf("Source %s not registered", source)
+func (m *Muzsikusch) Search(query string) []MusicID {
+
+	var results []MusicID
+	for _, source := range m.sources {
+		results = append(results, source.Search(query)...)
 	}
 
-	return src.Search(query)[0]
+	return results
 }
 
 func (m *Muzsikusch) OnPlaybackFinished() {

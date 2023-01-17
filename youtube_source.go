@@ -50,7 +50,7 @@ func NewYoutubeSource() (src *YoutubeSource, name string, err error) {
 // if it returns with an error, the APIKey field will be set to an empty string
 func (s *YoutubeSource) GetAPIKey() error {
 
-	APIFile, err := os.Open(os.Getenv("SOUNDCLOUD_TOKEN_PATH"))
+	APIFile, err := os.Open(os.Getenv("YOUTUBE_TOKEN_PATH"))
 	if err != nil {
 		return err
 	}

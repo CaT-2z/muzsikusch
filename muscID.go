@@ -11,19 +11,19 @@ type MusicID struct {
 }
 
 // searchSource is always "spotify", general search wont work if spotify doesnt work TODO: change that
-// TODO: Consider adding search to youtube too.
 // TODO: Drop down bar for the search
-func FromUser(query string, player *Muzsikusch, searchSource string) MusicID {
+func FromUser(query string, player *Muzsikusch) []MusicID {
 
 	for _, source := range player.sources {
 		if ok, mid := source.BelongsToThis(query); ok {
-			return mid
+			return []MusicID{mid}
 		}
 	}
 	if player == nil {
 		panic("Attempted to search for a query without a searcher")
 	}
-	return player.Search(query, searchSource)
+	// I'm trying to remove this part
+	return player.Search(query)
 }
 
 func (m MusicID) spotify() spotify.URI {

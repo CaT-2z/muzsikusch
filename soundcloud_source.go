@@ -15,7 +15,6 @@ type SoundcloudSource struct {
 	oauth string
 }
 
-// TODO: Check the oauth before returning
 func NewSoundcloudSource() (src *SoundcloudSource, name string, err error) {
 
 	name = "soundcloud"

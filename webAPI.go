@@ -64,9 +64,20 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	source := "spotify"
+	// I moved the part that separates out a single spotify track here, will still need to remove sometime
 
-	musicid := FromUser(query, api.player, source)
+	musicidResults := FromUser(query, api.player)
+
+	//TODO: this is still bad but its now localised here. Make a better search
+	musicid := musicidResults[0]
+	if len(musicidResults) > 1 {
+		for _, song := range musicidResults {
+			if song.SourceName == "spotify" {
+				musicid = song
+				break
+			}
+		}
+	}
 
 	err = api.player.Enqueue(musicid)
 	if err != nil {
