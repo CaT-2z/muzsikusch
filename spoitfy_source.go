@@ -198,14 +198,14 @@ func (c *SpotifySource) Search(query string) []MusicID {
 	}
 	fmt.Printf("Found track %v\n", results.Tracks.Tracks[0].Name)
 
-	tracks := make([]MusicID, 5)
+	tracks := make([]MusicID, 0)
 
 	for i, song := range results.Tracks.Tracks {
-		tracks[i] = MusicID{
+		tracks = append(tracks, MusicID{
 			trackID:    string(song.URI),
 			SourceName: "spotify",
 			Title:      song.Name,
-		}
+		})
 	}
 
 	return tracks
