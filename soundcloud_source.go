@@ -107,7 +107,7 @@ func (c *SoundcloudSource) GetStreamURL(m MusicID) (url string, err error) {
 		panic("Tried to get streamURL of non soundcloud track")
 	}
 
-	trackInfo, err := c.GetTrackInfo("https://api.soundcloud.com/tracks/" + m.trackID)
+	trackInfo, err := c.GetTrackInfo("https://api.soundcloud.com/tracks/" + m.TrackID)
 	if err != nil {
 		return
 	}
@@ -202,7 +202,7 @@ func (c *SoundcloudSource) Search(query string) []MusicID {
 	for _, song := range results.Collection {
 		if song.Kind == "track" {
 			ret = append(ret, MusicID{
-				trackID:    song.Urn[len("soundcloud:tracks:"):],
+				TrackID:    song.Urn[len("soundcloud:tracks:"):],
 				SourceName: "soundcloud",
 				Title:      song.Title,
 			})
@@ -222,7 +222,7 @@ func (c *SoundcloudSource) BelongsToThis(query string) (bool, MusicID) {
 			return false, MusicID{}
 		}
 		return true, MusicID{
-			trackID:    info.Urn[len("soundcloud:tracks:"):],
+			TrackID:    info.Urn[len("soundcloud:tracks:"):],
 			SourceName: "soundcloud",
 			Title:      info.Title,
 		}
@@ -232,7 +232,7 @@ func (c *SoundcloudSource) BelongsToThis(query string) (bool, MusicID) {
 			return false, MusicID{}
 		}
 		return true, MusicID{
-			trackID:    info.Urn[len("soundcloud:tracks:"):],
+			TrackID:    info.Urn[len("soundcloud:tracks:"):],
 			SourceName: "soundcloud",
 			Title:      info.Title,
 		}

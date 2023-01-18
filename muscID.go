@@ -5,9 +5,9 @@ import (
 )
 
 type MusicID struct {
-	trackID    string `json:"-"`
-	SourceName string `json:"-"`
-	Title      string
+	TrackID    string `json:"TrackID"`
+	SourceName string `json:"sourceName"`
+	Title      string `json:"title"`
 }
 
 // searchSource is always "spotify", general search wont work if spotify doesnt work TODO: change that
@@ -27,23 +27,23 @@ func FromUser(query string, player *Muzsikusch) []MusicID {
 }
 
 func (m MusicID) spotify() spotify.URI {
-	if m.trackID == "" {
+	if m.TrackID == "" {
 		panic("Attempted to call spotify() on a MusicID without a spotify URI")
 	}
-	return spotify.URI(m.trackID)
+	return spotify.URI(m.TrackID)
 }
 
 func (m MusicID) youtube() string {
-	if m.trackID == "" {
+	if m.TrackID == "" {
 		panic("Attempted to call youtube() on a MusicID without a youtube ID")
 	}
-	return m.trackID
+	return m.TrackID
 }
 
 func (m MusicID) isYoutube() bool {
-	return m.SourceName == "youtube" && m.trackID != ""
+	return m.SourceName == "youtube" && m.TrackID != ""
 }
 
 func (m MusicID) isSpotify() bool {
-	return m.SourceName == "spotify" && m.trackID != ""
+	return m.SourceName == "spotify" && m.TrackID != ""
 }

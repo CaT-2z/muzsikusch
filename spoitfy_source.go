@@ -200,9 +200,9 @@ func (c *SpotifySource) Search(query string) []MusicID {
 
 	tracks := make([]MusicID, 0)
 
-	for i, song := range results.Tracks.Tracks {
+	for _, song := range results.Tracks.Tracks {
 		tracks = append(tracks, MusicID{
-			trackID:    string(song.URI),
+			TrackID:    string(song.URI),
 			SourceName: "spotify",
 			Title:      song.Name,
 		})
@@ -319,21 +319,21 @@ func (c *SpotifySource) BelongsToThis(query string) (bool, MusicID) {
 	switch {
 	case strings.HasPrefix(query, "spotify:track:"):
 		m := MusicID{
-			trackID:    query,
+			TrackID:    query,
 			SourceName: "spotify",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	case strings.HasPrefix(query, "https://open.spotify.com/track/"):
 		m := MusicID{
-			trackID:    "spotify:track:" + query[len("https://open.spotify.com/track/"):],
+			TrackID:    "spotify:track:" + query[len("https://open.spotify.com/track/"):],
 			SourceName: "spotify",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	case isSpotifyID(query):
 		m := MusicID{
-			trackID:    "spotify:track:" + query,
+			TrackID:    "spotify:track:" + query,
 			SourceName: "spotify",
 		}
 		m.Title, _ = c.ResolveTitle(&m)

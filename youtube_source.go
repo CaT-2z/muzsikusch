@@ -143,7 +143,7 @@ func (s *YoutubeSource) Search(query string) []MusicID {
 	ret := make([]MusicID, 0)
 	for _, song := range results.Items {
 		ret = append(ret, MusicID{
-			trackID:    song.ID.VideoID,
+			TrackID:    song.ID.VideoID,
 			SourceName: "youtube",
 			Title:      song.Snippet.Title,
 		})
@@ -169,21 +169,21 @@ func (c *YoutubeSource) BelongsToThis(query string) (bool, MusicID) {
 	switch {
 	case strings.HasPrefix(query, "https://www.youtube.com/watch?v="):
 		m := MusicID{
-			trackID:    query[len("https://www.youtube.com/watch?v=") : len("https://www.youtube.com/watch?v=")+11],
+			TrackID:    query[len("https://www.youtube.com/watch?v=") : len("https://www.youtube.com/watch?v=")+11],
 			SourceName: "youtube",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	case strings.HasPrefix(query, "https://youtu.be/"):
 		m := MusicID{
-			trackID:    query[len("https://youtu.be/") : len("https://youtu.be/")+11],
+			TrackID:    query[len("https://youtu.be/") : len("https://youtu.be/")+11],
 			SourceName: "youtube",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	case isYoutubeID(query):
 		m := MusicID{
-			trackID:    query,
+			TrackID:    query,
 			SourceName: "youtube",
 		}
 		m.Title, _ = c.ResolveTitle(&m)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -36,13 +37,80 @@ func (api *HttpAPI) startServer() {
 func (api *HttpAPI) getQueue(w http.ResponseWriter, r *http.Request) {
 	queue := api.player.GetQueue()
 
-	data, err := json.Marshal(queue)
+	list := make([]struct{ Title string }, len(queue))
+	for i, entry := range queue {
+		list[i] = struct{ Title string }{Title: entry.Title}
+	}
+
+	data, err := json.Marshal(list)
 	if err != nil {
 		http.Error(w, "Couldn't marshal queue", http.StatusInternalServerError)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
+}
+
+func (api *HttpAPI) search(w http.ResponseWriter, r *http.Request) {
+	type addRequest struct {
+		Query string `json:"query"`
+	}
+
+	var req addRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Couldn't parse request", http.StatusBadRequest)
+		return
+	}
+
+	query := req.Query
+	if query == "" {
+		http.Error(w, "No title given", http.StatusBadRequest)
+		return
+	}
+
+	musicidResults := FromUser(query, api.player)
+
+	if len(musicidResults) == 0 {
+		http.Error(w, "No results", http.StatusInternalServerError)
+	}
+
+	if len(musicidResults) == 1 {
+		err = api.player.Enqueue(musicidResults[0])
+		if err != nil {
+			log.Printf("Failed to enqueue: %v\n", err)
+			http.Error(w, "Couldn't enqueue", http.StatusInternalServerError)
+		} else {
+
+		}
+	}
+
+	data, err := json.Marshal(musicidResults)
+	if err != nil {
+		http.Error(w, "Couldn't marshal search results", http.StatusInternalServerError)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+}
+
+// This will replace add to queue
+func (api *HttpAPI) newQueue(w http.ResponseWriter, r *http.Request) {
+	var req MusicID
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Couldn't parse request", http.StatusBadRequest)
+		return
+	}
+	err = api.player.Enqueue(req)
+	if err != nil {
+		log.Printf("Failed to enqueue: %v\n", err)
+		http.Error(w, "Couldn't enqueue", http.StatusInternalServerError)
+	} else {
+		// Maybe send something back?
+		w.WriteHeader(http.StatusCreated)
+	}
 }
 
 func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
@@ -67,6 +135,12 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 	// I moved the part that separates out a single spotify track here, will still need to remove sometime
 
 	musicidResults := FromUser(query, api.player)
+
+	data, err := json.Marshal(musicidResults)
+	if err != nil {
+		http.Error(w, "Couldn't marshal search results", http.StatusInternalServerError)
+	}
+	fmt.Println(string(data))
 
 	//TODO: this is still bad but its now localised here. Make a better search
 	var musicid MusicID
@@ -144,6 +218,8 @@ func (api *HttpAPI) registerHandles() {
 	}
 
 	auth := NewBasicAuthenticator("muzsikusch", validator)
+
+	//Maybe have a separate search and queue function?
 
 	queueEndpoint := EmptyEndpoint().WithGet(api.getQueue).WithPost(api.addToQueue)
 	http.Handle("/api/queue", auth.Wrap(queueEndpoint))
