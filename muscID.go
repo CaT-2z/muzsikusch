@@ -14,14 +14,14 @@ type MusicID struct {
 // TODO: Consider adding search to youtube too.
 // TODO: Drop down bar for the search
 func FromUser(query string, player *Muzsikusch, searchSource string) MusicID {
+	if player == nil {
+		panic("Attempted to search for a query without a searcher")
+	}
 
 	for _, source := range player.sources {
 		if ok, mid := source.BelongsToThis(query); ok {
 			return mid
 		}
-	}
-	if player == nil {
-		panic("Attempted to search for a query without a searcher")
 	}
 	return player.Search(query, searchSource)
 }
