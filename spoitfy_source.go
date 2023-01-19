@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/godbus/dbus/v5"
@@ -27,7 +28,16 @@ type SpotifySource struct {
 	waiterEnder        context.CancelFunc
 }
 
-func NewSpotifyFromToken(tokenPath string) *SpotifySource {
+func NewSpotifyFromToken(tokenPath string) (src *SpotifySource, name string, err error) {
+
+	name = "spotify"
+
+	defer func() {
+		if e := recover(); e != nil {
+			err = fmt.Errorf("NewSpotifyFromToken: Unable to start Spotify service: %s", e)
+		}
+	}()
+
 	conn, err := dbus.ConnectSessionBus()
 	if err != nil {
 		panic(err)
@@ -45,13 +55,13 @@ func NewSpotifyFromToken(tokenPath string) *SpotifySource {
 		),
 	)
 
-	src := &SpotifySource{
+	src = &SpotifySource{
 		client:   spotify.New(auth.Client(context.Background(), &tok)),
 		ctx:      context.Background(),
 		dbusConn: conn,
 	}
 
-	return src
+	return
 }
 
 func NewSpotifyWithAuth() *SpotifySource {
@@ -187,7 +197,7 @@ func (c *SpotifySource) Search(query string) MusicID {
 	}
 	fmt.Printf("Found track %v\n", results.Tracks.Tracks[0].Name)
 	return MusicID{
-		spotifyURI: string(results.Tracks.Tracks[0].URI),
+		trackID:    string(results.Tracks.Tracks[0].URI),
 		SourceName: "spotify",
 		Title:      results.Tracks.Tracks[0].Name,
 	}
@@ -297,6 +307,34 @@ func (c *SpotifySource) SaveToken(tokenPath string) {
 	log.Println("Saved token")
 }
 
+func (c *SpotifySource) BelongsToThis(query string) (bool, MusicID) {
+	switch {
+	case strings.HasPrefix(query, "spotify:track:"):
+		m := MusicID{
+			trackID:    query,
+			SourceName: "spotify",
+		}
+		m.Title, _ = c.ResolveTitle(&m)
+		return true, m
+	case strings.HasPrefix(query, "https://open.spotify.com/track/"):
+		m := MusicID{
+			trackID:    "spotify:track:" + query[len("https://open.spotify.com/track/"):],
+			SourceName: "spotify",
+		}
+		m.Title, _ = c.ResolveTitle(&m)
+		return true, m
+	case isSpotifyID(query):
+		m := MusicID{
+			trackID:    "spotify:track:" + query,
+			SourceName: "spotify",
+		}
+		m.Title, _ = c.ResolveTitle(&m)
+		return true, m
+	default:
+		return false, MusicID{}
+	}
+}
+
 func getSpotifyToken(tokenPath string) (oauth2.Token, error) {
 	var token oauth2.Token
 
@@ -319,4 +357,17 @@ func getSpotifyToken(tokenPath string) (oauth2.Token, error) {
 	}
 
 	return token, nil
+}
+
+func isSpotifyID(query string) bool {
+	if len(query) != 22 {
+		return false
+	}
+
+	for _, c := range query {
+		if !strings.ContainsRune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", c) {
+			return false
+		}
+	}
+	return true
 }

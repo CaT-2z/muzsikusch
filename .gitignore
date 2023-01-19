@@ -1,2 +1,7 @@
 go.sum
+muzsikusch
 spotify_token.json
+soundcloud_token.json
+.vscode/
+passwords.json
+passwordHashCreator

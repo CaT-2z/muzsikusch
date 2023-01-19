@@ -125,3 +125,17 @@ func (m *Muzsikusch) ResolveTitle(music_id *MusicID) (string, error) {
 func (m *Muzsikusch) GetQueue() []MusicID {
 	return m.queue
 }
+
+// Registers the source if it went down without errors
+func (m *Muzsikusch) SetupSource(source interface {
+	Source
+	TitleResolver
+}, name string, err error) {
+	if err != nil {
+		fmt.Printf("SetupSource: Will start without %s: %s\n", name, err)
+		return
+	}
+	m.RegisterSource(source, name)
+	m.RegisterResolver(source, name)
+	source.Register(m.OnPlaybackFinished)
+}
