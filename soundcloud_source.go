@@ -31,25 +31,9 @@ func NewSoundcloudSource() (src *SoundcloudSource, name string, err error) {
 		panic(err)
 	}
 
-	tokenFile, err := os.Open(os.Getenv("SOUNDCLOUD_TOKEN_PATH"))
-	if err != nil {
-		panic(err)
-	}
-
-	tokenBytes, err := io.ReadAll(tokenFile)
-	if err != nil {
-		panic(err)
-	}
-
-	var token struct {
-		Token string `json:"token"`
-	}
-
-	json.Unmarshal(tokenBytes, &token)
-
 	src = &SoundcloudSource{
 		MpvSource: *mpv,
-		oauth:     token.Token,
+		oauth:     os.Getenv("SOUNDCLOUD_TOKEN"),
 	}
 
 	err = src.CheckOAuth()

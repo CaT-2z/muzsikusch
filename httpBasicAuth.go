@@ -23,7 +23,7 @@ func NewBasicAuthenticator(realm string, passwordValidator PasswordValidator) Ba
 	}
 }
 
-func (b *BasicAuthenticator) Wrap(handler http.Handler) http.Handler {
+func (b *BasicAuthenticator) AuthRequest(handler http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Check for auth header
 		header := r.Header.Get("Authorization")

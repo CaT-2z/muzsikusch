@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 )
 
 type HttpAPI struct {
@@ -136,11 +134,10 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 
 	musicidResults := FromUser(query, api.player)
 
-	data, err := json.Marshal(musicidResults)
+	_, err = json.Marshal(musicidResults)
 	if err != nil {
 		http.Error(w, "Couldn't marshal search results", http.StatusInternalServerError)
 	}
-	fmt.Println(string(data))
 
 	//TODO: this is still bad but its now localised here. Make a better search
 	var musicid MusicID
@@ -207,31 +204,21 @@ func (api *HttpAPI) setVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *HttpAPI) registerHandles() {
-	passwords, err := os.Open("passwords.json")
-	if err != nil {
-		panic(err)
-	}
-
-	validator, err := NewBasicPasswordValidator(passwords)
-	if err != nil {
-		panic(err)
-	}
-
-	auth := NewBasicAuthenticator("muzsikusch", validator)
-
 	//Maybe have a separate search and queue function?
 
-	queueEndpoint := EmptyEndpoint().WithGet(api.getQueue).WithPost(api.addToQueue)
-	http.Handle("/api/queue", auth.Wrap(queueEndpoint))
+	http.Handle("/callback", AuthHandler)
 
-	http.Handle("/api/resume", auth.Wrap(SimpleEndpoint(api.player.Resume)))
-	http.Handle("/api/pause", auth.Wrap(SimpleEndpoint(api.player.Pause)))
-	http.Handle("/api/skip", auth.Wrap(SimpleEndpoint(api.player.Skip)))
-	http.Handle("/api/mute", auth.Wrap(SimpleEndpoint(api.player.Mute)))
-	http.Handle("/api/stop", auth.Wrap(SimpleEndpoint(api.player.Stop)))
+	queueEndpoint := EmptyEndpoint().WithGet(api.getQueue).WithPost(api.addToQueue)
+	http.Handle("/api/queue", AuthRequest(queueEndpoint))
+
+	http.Handle("/api/resume", AuthRequest(SimpleEndpoint(api.player.Resume)))
+	http.Handle("/api/pause", AuthRequest(SimpleEndpoint(api.player.Pause)))
+	http.Handle("/api/skip", AuthRequest(SimpleEndpoint(api.player.Skip)))
+	http.Handle("/api/mute", AuthRequest(SimpleEndpoint(api.player.Mute)))
+	http.Handle("/api/stop", AuthRequest(SimpleEndpoint(api.player.Stop)))
 	// TODO: Seek
-	http.Handle("/api/volume", auth.Wrap(GetEndpoint(api.getVolume).WithPost(api.setVolume)))
+	http.Handle("/api/volume", AuthRequest(GetEndpoint(api.getVolume).WithPost(api.setVolume)))
 	http.Handle("/api/", http.NotFoundHandler())
 
-	http.Handle("/", http.FileServer(http.Dir("html")))
+	http.Handle("/", AuthRequest(http.FileServer(http.Dir("html"))))
 }
