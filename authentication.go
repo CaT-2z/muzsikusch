@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -42,11 +43,27 @@ func SetupAuthSCH() {
 		}
 	}()
 
+	js, err := os.Open(os.Getenv("WHITELIST_PATH"))
+	if err != nil {
+		panic(fmt.Errorf("Couldn't open whitelist file", err))
+	}
+
+	all, err := io.ReadAll(js)
+	if err != nil {
+		panic(err)
+	}
+
+	var whitelist map[string]bool
+	err = json.Unmarshal(all, &whitelist)
+	if err != nil {
+		panic(err)
+	}
+
 	if os.Getenv("AUTHSCH_ID") == "" || os.Getenv("AUTHSCH_TOKEN") == "" {
 		panic("No token/id provided")
 	}
 
-	Auth := authsch.CreateClient(os.Getenv("AUTHSCH_ID"), os.Getenv("AUTHSCH_TOKEN"), []string{"basic"})
+	Auth := authsch.CreateClient(os.Getenv("AUTHSCH_ID"), os.Getenv("AUTHSCH_TOKEN"), []string{"basic", "linkedAccounts"})
 
 	// AuthHandler for handling the authsch login
 	AuthHandler = Auth.GetLoginHandler(func(details *authsch.AccDetails, w http.ResponseWriter, r *http.Request) {
@@ -56,10 +73,15 @@ func SetupAuthSCH() {
 		}
 
 		session, _ := Store.Get(r, "session")
-		session.Values["id"] = details.InternalID
-		session.Save(r, w)
+		fmt.Println("Let in user", details.LinkedAccounts.SchAcc) //Logging
+		if whitelist[details.LinkedAccounts.SchAcc] {
+			session.Values["id"] = details.InternalID
+			session.Save(r, w)
 
-		http.Redirect(w, r, "/", 302)
+			http.Redirect(w, r, "/", 302)
+		} else {
+			_, _ = w.Write([]byte("User not whitelisted"))
+		}
 	},
 		func(w http.ResponseWriter, r *http.Request) {
 			_, _ = w.Write([]byte("Couldn't log you in"))
