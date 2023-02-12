@@ -1,0 +1,305 @@
+openapi: '3.0.2'
+info:
+  title: Muzsikusch
+  version: '2.0.0'
+servers:
+  - url: https://muzsikusch.sch.bme.hu/v2/api
+
+components:
+  schemas:
+    musicID:
+      description: A playable track.
+      properties:
+        ArtworkURL:
+          type: string
+          example: https://i1.sndcdn.com/artworks-000583467107-tuvy90-t500x500.jpg
+        TrackID:
+          type: string
+          example: dQw4w9WgXcQ
+        SourceName:
+          type: string
+          example: youtube
+        Title:
+          type: string
+          example: Lorem ipsum
+        Author:
+          type: string
+          example: Kevin Macleod
+        Duration:
+          description: Duration of track in nanoseconds
+          type: integer
+          example: 60000000000
+    Entry:
+      description: A track that is in the list of tracks to be played.
+      properties:
+        MusicID: 
+          $ref: "#/components/schemas/musicID"
+        Playlist:
+          type: string
+          description: The playlist this track belongs to.
+        UID:
+          type: string
+          description: Unique identifier for each track in the list, even between instances of the same song, so you can uniquely address them.
+        PlaylistID:
+          type: string
+          description: If this track was appended as a part of multiple tracks, they will all share this ID.
+        StartTime:
+          type: number
+          example: 48.4
+          description: The timestamp at which the song will start.
+    Event:
+      description: An event that is passed in a websocket connection.
+      properties:
+        Type:
+          type: string
+          example: append
+        Payload:
+          type: object
+          enum: [
+            $ref: "#/components/schemas/Entry"
+          ]
+          example: "Entry in case of append event"
+  parameters:
+    musicIDParam:      
+      name: musicID
+      in: query
+      required: true
+      schema:
+        $ref: "#/components/schemas/musicID"
+      
+paths:
+  /search:
+    get:
+      parameters:
+        - in: query
+          name: searchString
+          required: true
+          schema:
+            type: string
+            example: Dave Brubeck Take Five
+      responses:
+        '200':
+         description: OK
+         content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/musicID"
+
+  /append:
+    post:
+      description: Add a track to the end of the list
+      parameters:
+         - $ref: "#/components/parameters/musicIDParam"
+      responses:
+        '200':
+          description: OK
+  
+  /push:
+    post:
+      description: Add a track to the front of the list
+      parameters:
+         - $ref: "#/components/parameters/musicIDParam"
+      responses:
+        '200':
+          description: OK
+
+  /force:
+    post:
+      description: Replace currently running track with this, push the stopped track to the list
+      parameters:
+         - $ref: "#/components/parameters/musicIDParam"
+      responses:
+        '200':
+          description: OK
+
+  /ws:
+    post:
+      description: Establishes a websocket connection, so the client receives updates from other clients.
+      callbacks:
+        Events relating to queue updates:
+          'AppendEvent':   # The callback URL,
+                                            # Refers to the passed URL
+            post:
+              description: Fired when a track is appended to the list.
+              requestBody:   # Contents of the callback message
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        Type:
+                          type: string
+                          example: append
+                        Payload:
+                          $ref: "#/components/schemas/Entry"
+                          description: The entry to be appended
+                      required:
+                        - Type
+                        - Payload
+              responses:
+                '200':
+                  description: OK
+          'PushEvent':   # The callback URL,
+                                            # Refers to the passed URL
+            post:
+              description: Fired when a track is pushed to the front of the list.
+              requestBody:   # Contents of the callback message
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        Type:
+                          type: string
+                          example: push
+                        Payload:
+                          $ref: "#/components/schemas/Entry"
+                      required:
+                        - Type
+                        - Payload
+              responses:
+                '200':
+                  description: OK
+          'RemoveEvent':   # The callback URL,
+                                            # Refers to the passed URL
+            post:
+              description: Fired when a track is removed from the list.
+              requestBody:   # Contents of the callback message
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        Type:
+                          type: string
+                          example: remove
+                        Payload:
+                          type: string
+                          example: UID
+                          description: The UID of the entry to be removed
+                      required:
+                        - Type
+                        - Payload
+              responses:
+                '200':
+                  description: OK
+        Events relating to playback updates:
+          "PauseEvent":
+            post:
+              description: Fired when the playback is paused.
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        Type:
+                          type: string
+                          example: pause
+                        Payload:
+                          type: number
+                          example: 54.5
+                          description: The playback time where the server paused.
+              responses:
+                '200':
+                  description: OK
+          "UnpauseEvent":
+            post:
+              description: Fired when the playback is unpaused.
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        Type:
+                          type: string
+                          example: unpause
+                        Payload:
+                          type: number
+                          example: 54.5
+                          description: The playback time where the server unpaused.
+              responses:
+                '200':
+                  description: OK
+          "TrackStartEvent":
+            post:
+              description: Fired when the current track is replaced. The payload is the track that the server started playing
+              requestBody:
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      properties:
+                        Type:
+                          type: string
+                          example: start
+                        Payload:
+                          $ref: "#/components/schemas/Entry"
+                          description: The track that starts to play
+              responses:
+                '200':
+                  description: OK
+
+      responses:
+        '200':
+          description: Webhook created
+
+  /remove:
+    delete:
+      description: Deletes a single track from the list.
+      parameters:
+        - in: query
+          name: UID
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: isPlaylist
+          description: Whether the query string is a PlaylistID
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Not Found
+  
+  /skip:
+    delete:
+      description: Skips current track.
+      parameters:
+        - in: query
+          name: UID
+          required: true
+          schema:
+            type: string
+          description: Is needed so accidental double skips happen less often.
+      responses:
+        '200':
+          description: OK
+        '404':
+          description: Not Found
+  /pause:
+    post:
+      description: Pause the current track
+      responses:
+        '200':
+          description: OK
+        '304':
+          description: The playback is not running
+  /unpause:
+    post:
+      description: Unpause the current track
+      responses:
+        '200':
+          description: OK
+        '304':
+          description: The playback is not running
+  

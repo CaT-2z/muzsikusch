@@ -1,9 +1,10 @@
-package main
+package source
 
 import (
 	"context"
 	"fmt"
 	"log"
+	"muzsikusch/queue"
 
 	"github.com/dexterlb/mpvipc"
 )
@@ -103,7 +104,7 @@ func (s *MpvSource) Mute() error {
 	return err
 }
 
-func (s *MpvSource) ResolveTitle(mid *MusicID) (string, error) {
+func (s *MpvSource) ResolveTitle(mid *queue.MusicID) (string, error) {
 	return "", fmt.Errorf("cannot resolve title on mpv source")
 }
 
