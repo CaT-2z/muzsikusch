@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"muzsikusch/queue"
+	entry "muzsikusch/queue/entry"
 	"net/http"
 	"net/url"
 	"os"
@@ -71,7 +71,7 @@ func (c *SoundcloudSource) CheckOAuth() (err error) {
 
 }
 
-func (c *SoundcloudSource) Play(m queue.MusicID) error {
+func (c *SoundcloudSource) Play(m entry.MusicID) error {
 
 	url, err := c.GetStreamURL(m)
 	if err != nil {
@@ -86,7 +86,7 @@ func (c *SoundcloudSource) Play(m queue.MusicID) error {
 
 }
 
-func (c *SoundcloudSource) GetStreamURL(m queue.MusicID) (url string, err error) {
+func (c *SoundcloudSource) GetStreamURL(m entry.MusicID) (url string, err error) {
 
 	if m.SourceName != "soundcloud" {
 		panic("Tried to get streamURL of non soundcloud track")
@@ -154,23 +154,23 @@ func (c *SoundcloudSource) GetTrackInfo(url string) (info SoundcloudTrackInfo, e
 	return
 }
 
-func (c *SoundcloudSource) Search(query string) []queue.MusicID {
+func (c *SoundcloudSource) Search(query string) []entry.MusicID {
 	client := &http.Client{}
 
 	request, err := http.NewRequest("GET", "https://api-v2.soundcloud.com/search?q="+url.QueryEscape(query)+"&limit=5", nil)
 	if err != nil {
-		return []queue.MusicID{}
+		return []entry.MusicID{}
 	}
 	request.Header.Set("Authorization", c.oauth)
 
 	res, err := client.Do(request)
 	if err != nil {
-		return []queue.MusicID{}
+		return []entry.MusicID{}
 	}
 
 	all, err := io.ReadAll(res.Body)
 	if err != nil {
-		return []queue.MusicID{}
+		return []entry.MusicID{}
 	}
 
 	//A response would have more fields, but this is all we need
@@ -180,13 +180,13 @@ func (c *SoundcloudSource) Search(query string) []queue.MusicID {
 
 	err = json.Unmarshal(all, &results)
 	if err != nil {
-		return []queue.MusicID{}
+		return []entry.MusicID{}
 	}
 
-	ret := make([]queue.MusicID, 0)
+	ret := make([]entry.MusicID, 0)
 	for _, song := range results.Collection {
 		if song.Kind == "track" {
-			ret = append(ret, queue.MusicID{
+			ret = append(ret, entry.MusicID{
 				TrackID:    song.Urn[len("soundcloud:tracks:"):],
 				SourceName: "soundcloud",
 				Title:      song.Title,
@@ -199,14 +199,14 @@ func (c *SoundcloudSource) Search(query string) []queue.MusicID {
 	return ret
 }
 
-func (c *SoundcloudSource) BelongsToThis(query string) (bool, queue.MusicID) {
+func (c *SoundcloudSource) BelongsToThis(query string) (bool, entry.MusicID) {
 	switch {
 	case strings.HasPrefix(query, "https://soundcloud.com/"):
 		info, err := c.GetTrackInfo(query)
 		if err != nil {
-			return false, queue.MusicID{}
+			return false, entry.MusicID{}
 		}
-		return true, queue.MusicID{
+		return true, entry.MusicID{
 			TrackID:    info.Urn[len("soundcloud:tracks:"):],
 			SourceName: "soundcloud",
 			Title:      info.Title,
@@ -214,15 +214,15 @@ func (c *SoundcloudSource) BelongsToThis(query string) (bool, queue.MusicID) {
 	case isSoundcloudID(query):
 		info, err := c.GetTrackInfo("https://api.soundcloud.com/tracks/" + query)
 		if err != nil {
-			return false, queue.MusicID{}
+			return false, entry.MusicID{}
 		}
-		return true, queue.MusicID{
+		return true, entry.MusicID{
 			TrackID:    info.Urn[len("soundcloud:tracks:"):],
 			SourceName: "soundcloud",
 			Title:      info.Title,
 		}
 	default:
-		return false, queue.MusicID{}
+		return false, entry.MusicID{}
 
 	}
 
@@ -241,6 +241,6 @@ func isSoundcloudID(query string) bool {
 }
 
 // Completely deprecated, should remove
-func (c *SoundcloudSource) ResolveTitle(*queue.MusicID) (string, error) {
+func (c *SoundcloudSource) ResolveTitle(*entry.MusicID) (string, error) {
 	panic("This is not supposed to happen!")
 }

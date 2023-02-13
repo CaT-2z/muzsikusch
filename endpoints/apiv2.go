@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"muzsikusch/player"
-	"muzsikusch/queue"
+	entry "muzsikusch/queue/entry"
 	"muzsikusch/websocket"
 	"net/http"
 
@@ -18,7 +18,10 @@ var (
 
 // Takes in a subrouter where it will start matching
 func NewV2APIRouter(r *mux.Router, htapi *HttpAPI) *mux.Router {
+
 	mplayer = htapi.Player
+	htapi.Player.SetWSManager(wsmanager)
+
 	r.HandleFunc("/search", searchHandler).Methods("GET")
 	r.HandleFunc("/ws", wsmanager.ServeWS).Schemes("ws", "wss")
 	return r
@@ -71,7 +74,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func appendHandler(w http.ResponseWriter, r *http.Request) {
-	var req queue.MusicID
+	var req entry.MusicID
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "Couldn't parse request", http.StatusBadRequest)
@@ -84,12 +87,11 @@ func appendHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// Maybe send something back?
 		w.WriteHeader(http.StatusCreated)
-		//TODO: ws write everyone
 	}
 }
 
 func pushHandler(w http.ResponseWriter, r *http.Request) {
-	var req queue.MusicID
+	var req entry.MusicID
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "Couldn't parse request", http.StatusBadRequest)

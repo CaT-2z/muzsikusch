@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 	"math"
-	"muzsikusch/queue"
+	entry "muzsikusch/queue/entry"
 	"os"
 	"strings"
 	"time"
@@ -103,7 +103,7 @@ func (c *SpotifySource) Register(onPBFinished func()) {
 	c.onPlaybackFinished = onPBFinished
 }
 
-func (c *SpotifySource) Play(music_id queue.MusicID) error {
+func (c *SpotifySource) Play(music_id entry.MusicID) error {
 	log.Printf("Playing %v\n", spotifyURI(music_id))
 	uri := spotifyURI(music_id)
 	opt := spotify.PlayOptions{
@@ -152,6 +152,15 @@ func (c *SpotifySource) Skip() error {
 func (c *SpotifySource) Resume() error {
 	return c.client.Play(c.ctx)
 }
+func (c *SpotifySource) GetTimePos() (float32, error) {
+	current, err := c.client.PlayerCurrentlyPlaying(c.ctx)
+	if err != nil {
+		return 0, err
+	}
+	x := float32(current.Progress) / 1000
+	return x, nil
+}
+
 func (c *SpotifySource) Forward(ammount int) error {
 	state, err := c.client.PlayerCurrentlyPlaying(c.ctx)
 	if err != nil {
@@ -192,17 +201,17 @@ func (c *SpotifySource) Mute() error {
 }
 
 // I don't think you can specify the number of results in Spotify search
-func (c *SpotifySource) Search(query string) []queue.MusicID {
+func (c *SpotifySource) Search(query string) []entry.MusicID {
 	results, err := c.client.Search(c.ctx, query, spotify.SearchTypeTrack)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Found track %v\n", results.Tracks.Tracks[0].Name)
 
-	tracks := make([]queue.MusicID, 0)
+	tracks := make([]entry.MusicID, 0)
 
 	for _, song := range results.Tracks.Tracks {
-		tracks = append(tracks, queue.MusicID{
+		tracks = append(tracks, entry.MusicID{
 			TrackID:    string(song.URI),
 			SourceName: "spotify",
 			Title:      song.Name,
@@ -212,7 +221,7 @@ func (c *SpotifySource) Search(query string) []queue.MusicID {
 	return tracks
 }
 
-func (c *SpotifySource) ResolveTitle(mid *queue.MusicID) (string, error) {
+func (c *SpotifySource) ResolveTitle(mid *entry.MusicID) (string, error) {
 	id := spotify.ID(spotifyURI(*mid)[14:])
 	track, err := c.client.GetTrack(c.ctx, id)
 	if err != nil {
@@ -316,31 +325,31 @@ func (c *SpotifySource) SaveToken(tokenPath string) {
 	log.Println("Saved token")
 }
 
-func (c *SpotifySource) BelongsToThis(query string) (bool, queue.MusicID) {
+func (c *SpotifySource) BelongsToThis(query string) (bool, entry.MusicID) {
 	switch {
 	case strings.HasPrefix(query, "spotify:track:"):
-		m := queue.MusicID{
+		m := entry.MusicID{
 			TrackID:    query,
 			SourceName: "spotify",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	case strings.HasPrefix(query, "https://open.spotify.com/track/"):
-		m := queue.MusicID{
+		m := entry.MusicID{
 			TrackID:    "spotify:track:" + query[len("https://open.spotify.com/track/"):],
 			SourceName: "spotify",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	case isSpotifyID(query):
-		m := queue.MusicID{
+		m := entry.MusicID{
 			TrackID:    "spotify:track:" + query,
 			SourceName: "spotify",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	default:
-		return false, queue.MusicID{}
+		return false, entry.MusicID{}
 	}
 }
 
@@ -381,7 +390,7 @@ func isSpotifyID(query string) bool {
 	return true
 }
 
-func spotifyURI(m queue.MusicID) spotify.URI {
+func spotifyURI(m entry.MusicID) spotify.URI {
 	if m.TrackID == "" {
 		panic("Attempted to call spotify() on a MusicID without a spotify URI")
 	}

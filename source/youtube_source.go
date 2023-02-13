@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"muzsikusch/queue"
+	entry "muzsikusch/queue/entry"
 	"net/http"
 	"net/url"
 	"os"
@@ -86,7 +86,7 @@ func (s *YoutubeSource) CheckAPIKey() (err error) {
 	return
 }
 
-func (s *YoutubeSource) Play(MusicID queue.MusicID) error {
+func (s *YoutubeSource) Play(MusicID entry.MusicID) error {
 	url, err := getAudioURL(MusicID)
 	if err != nil {
 		return err
@@ -99,25 +99,25 @@ func (s *YoutubeSource) Play(MusicID queue.MusicID) error {
 	return err
 }
 
-func (s *YoutubeSource) Search(query string) []queue.MusicID {
+func (s *YoutubeSource) Search(query string) []entry.MusicID {
 	if s.APIKey == "" {
-		return []queue.MusicID{}
+		return []entry.MusicID{}
 	}
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", "https://www.googleapis.com/youtube/v3/search?part=snippet&key="+s.APIKey+"&type=video&q="+url.QueryEscape(query), nil)
 	if err != nil {
-		return []queue.MusicID{}
+		return []entry.MusicID{}
 	}
 
 	res, err := client.Do(req)
 	if err != nil {
-		return []queue.MusicID{}
+		return []entry.MusicID{}
 	}
 
 	all, err := io.ReadAll(res.Body)
 	if err != nil {
-		return []queue.MusicID{}
+		return []entry.MusicID{}
 	}
 
 	defer res.Body.Close()
@@ -125,9 +125,9 @@ func (s *YoutubeSource) Search(query string) []queue.MusicID {
 	var results YoutubeResponse
 	json.Unmarshal(all, &results)
 
-	ret := make([]queue.MusicID, 0)
+	ret := make([]entry.MusicID, 0)
 	for _, song := range results.Items {
-		ret = append(ret, queue.MusicID{
+		ret = append(ret, entry.MusicID{
 			TrackID:    song.ID.VideoID,
 			SourceName: "youtube",
 			Title:      song.Snippet.Title,
@@ -137,7 +137,7 @@ func (s *YoutubeSource) Search(query string) []queue.MusicID {
 	return ret
 }
 
-func (s *YoutubeSource) ResolveTitle(MusicID *queue.MusicID) (string, error) {
+func (s *YoutubeSource) ResolveTitle(MusicID *entry.MusicID) (string, error) {
 	if MusicID.Title != "" {
 		return MusicID.Title, nil
 	}
@@ -150,31 +150,31 @@ func (s *YoutubeSource) ResolveTitle(MusicID *queue.MusicID) (string, error) {
 	return video.Title, nil
 }
 
-func (c *YoutubeSource) BelongsToThis(query string) (bool, queue.MusicID) {
+func (c *YoutubeSource) BelongsToThis(query string) (bool, entry.MusicID) {
 	switch {
 	case strings.HasPrefix(query, "https://www.youtube.com/watch?v="):
-		m := queue.MusicID{
+		m := entry.MusicID{
 			TrackID:    query[len("https://www.youtube.com/watch?v=") : len("https://www.youtube.com/watch?v=")+11],
 			SourceName: "youtube",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	case strings.HasPrefix(query, "https://youtu.be/"):
-		m := queue.MusicID{
+		m := entry.MusicID{
 			TrackID:    query[len("https://youtu.be/") : len("https://youtu.be/")+11],
 			SourceName: "youtube",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	case isYoutubeID(query):
-		m := queue.MusicID{
+		m := entry.MusicID{
 			TrackID:    query,
 			SourceName: "youtube",
 		}
 		m.Title, _ = c.ResolveTitle(&m)
 		return true, m
 	default:
-		return false, queue.MusicID{}
+		return false, entry.MusicID{}
 	}
 }
 
@@ -187,13 +187,13 @@ func getBestAudio(formats youtube.FormatList) youtube.Format {
 	return formats[0]
 }
 
-func getVideo(m *queue.MusicID) (*youtube.Video, error) {
+func getVideo(m *entry.MusicID) (*youtube.Video, error) {
 	id := youtubeID(*m)
 	yt := &youtube.Client{}
 	return yt.GetVideo(id)
 }
 
-func getAudioURL(MusicID queue.MusicID) (string, error) {
+func getAudioURL(MusicID entry.MusicID) (string, error) {
 	video, err := getVideo(&MusicID)
 	if err != nil {
 		return "", err
@@ -228,7 +228,7 @@ func isYoutubeID(query string) bool {
 	return true
 }
 
-func youtubeID(m queue.MusicID) string {
+func youtubeID(m entry.MusicID) string {
 	if m.TrackID == "" {
 		panic("Attempted to call youtube() on a MusicID without a youtube ID")
 	}

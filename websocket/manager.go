@@ -88,3 +88,12 @@ func (m *Manager) removeClient(client *Client) {
 		delete(m.clients, client)
 	}
 }
+
+// Writes to all clients
+func (m *Manager) WriteAll(e Event) {
+	for client, ok := range m.clients {
+		if ok {
+			client.egress <- e
+		}
+	}
+}

@@ -3,61 +3,47 @@ package queue
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"math/rand"
-	"time"
+	entry "muzsikusch/queue/entry"
+	"muzsikusch/websocket"
 )
 
 // TODO: ADD ENDPOINTS!!!
 type Queue struct {
-	Entries []Entry
+	Entries   []entry.Entry
+	wsmanager *websocket.Manager
 }
 
 // Adds unique ID to track, so only that one gets deleted
-type Entry struct {
-	MusicID
-	// ID of the playlist its a part of
-	Playlist   string
-	UID        string
-	PlaylistID string
-	// In case the track starts from a custom timestamp or something
-	StartTime float32
-}
-
-// TODO: Make a separate file for this
-type Playlist struct {
-	ID           string
-	Title        string
-	Creator      string
-	ArtworkURL   string
-	Date         time.Time
-	ModifiedDate time.Time
-	Tracks       []MusicID
-	// If copied from a pre-existing playlist, this is a URL linking to that playlist e.g. Marcsello
-	OriginalURL string
-}
 
 func NewQueue() (queue *Queue) {
 	queue = &Queue{
-		Entries: make([]Entry, 0),
+		Entries: make([]entry.Entry, 0),
 	}
 	return
 }
 
+func (q *Queue) SetWSManager(man *websocket.Manager) {
+	q.wsmanager = man
+}
+
 // This copies
-func (q *Queue) Append(track MusicID) Entry {
+func (q *Queue) Append(track entry.MusicID) entry.Entry {
 	hash := sha256.Sum256([]byte(string(rand.Int31())))
-	e := Entry{
+	e := entry.Entry{
 		MusicID: track,
 		UID:     base64.StdEncoding.EncodeToString(hash[:]),
 	}
 
 	q.Entries = append(q.Entries, e)
+	fmt.Println("ADDED " + e.Title) //LOGGING
 	return e
 }
 
-func (q *Queue) AppendWithTime(track MusicID, timeStamp float32) Entry {
+func (q *Queue) AppendWithTime(track entry.MusicID, timeStamp float32) entry.Entry {
 	hash := sha256.Sum256([]byte(string(rand.Int31())))
-	e := Entry{
+	e := entry.Entry{
 		MusicID:   track,
 		UID:       base64.StdEncoding.EncodeToString(hash[:]),
 		StartTime: timeStamp,
@@ -80,7 +66,7 @@ func (q *Queue) RemoveTrack(UID string) bool {
 
 // Removes tracks by the playlistID
 func (q *Queue) RemoveMultiple(UID string) (b bool) {
-	nq := make([]Entry, 0)
+	nq := make([]entry.Entry, 0)
 	for _, e := range q.Entries {
 		if e.PlaylistID != UID {
 			nq = append(nq, e)
@@ -93,39 +79,39 @@ func (q *Queue) RemoveMultiple(UID string) (b bool) {
 }
 
 // Pushes the track to the front of the queue
-func (q *Queue) Push(track MusicID) Entry {
+func (q *Queue) Push(track entry.MusicID) entry.Entry {
 	hash := sha256.Sum256([]byte(string(rand.Int31())))
-	e := Entry{
+	e := entry.Entry{
 		MusicID: track,
 		UID:     base64.StdEncoding.EncodeToString(hash[:]),
 	}
 	if len(q.Entries) < 1 {
-		q.Entries = append([]Entry{q.Entries[0], e}, q.Entries[1:]...)
+		q.Entries = append([]entry.Entry{q.Entries[0], e}, q.Entries[1:]...)
 	} else {
 		q.Entries = append(q.Entries, e)
 	}
 	return e
 }
 
-func (q *Queue) ForcePush(track MusicID, timeStamp float32) Entry {
+func (q *Queue) ForcePush(track entry.MusicID, timeStamp float32) entry.Entry {
 	hash := sha256.Sum256([]byte(string(rand.Int31())))
-	e := Entry{
+	e := entry.Entry{
 		MusicID: track,
 		UID:     base64.StdEncoding.EncodeToString(hash[:]),
 	}
 	if len(q.Entries) < 0 {
 		q.Entries[0].StartTime = timeStamp
 	}
-	q.Entries = append([]Entry{e}, q.Entries...)
+	q.Entries = append([]entry.Entry{e}, q.Entries...)
 	return e
 }
 
 // Returns with the playlistID
-func (q *Queue) AddMultiple(tracks []MusicID) string {
+func (q *Queue) AddMultiple(tracks []entry.MusicID) string {
 	playlistHash := sha256.Sum256([]byte(string(rand.Int31())))
 	for _, track := range tracks {
 		hash := sha256.Sum256([]byte(string(rand.Int31())))
-		e := Entry{
+		e := entry.Entry{
 			MusicID:    track,
 			UID:        base64.StdEncoding.EncodeToString(hash[:]),
 			PlaylistID: string(playlistHash[:]),
@@ -136,11 +122,11 @@ func (q *Queue) AddMultiple(tracks []MusicID) string {
 }
 
 // Returns with the playlistID
-func (q *Queue) AddPlaylist(p Playlist) string {
+func (q *Queue) AddPlaylist(p entry.Playlist) string {
 	playlistHash := sha256.Sum256([]byte(string(rand.Int31())))
 	for _, track := range p.Tracks {
 		hash := sha256.Sum256([]byte(string(rand.Int31())))
-		e := Entry{
+		e := entry.Entry{
 			MusicID:    track,
 			UID:        base64.StdEncoding.EncodeToString(hash[:]),
 			PlaylistID: string(playlistHash[:]),
@@ -155,29 +141,29 @@ func (q *Queue) Length() int {
 	return len(q.Entries) - 1
 }
 
-func (q *Queue) Pop() (e Entry) {
+func (q *Queue) Pop() (e entry.Entry) {
 	if len(q.Entries) < 2 {
-		q.Entries = []Entry{}
-		return Entry{}
+		q.Entries = []entry.Entry{}
+		return entry.Entry{}
 	}
 	q.Entries = q.Entries[1:]
 	return q.Entries[0]
 }
 
-func (q *Queue) GetQueue() []Entry {
+func (q *Queue) GetQueue() []entry.Entry {
 	if len(q.Entries) < 2 {
-		return []Entry{}
+		return []entry.Entry{}
 	}
 	return q.Entries[1:]
 }
 
 func (q *Queue) Flush() {
-	q.Entries = make([]Entry, 0)
+	q.Entries = make([]entry.Entry, 0)
 }
 
-func (q *Queue) CurrentTrack() Entry {
+func (q *Queue) CurrentTrack() entry.Entry {
 	if len(q.Entries) == 0 {
-		return Entry{}
+		return entry.Entry{}
 	}
 	return q.Entries[0]
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"muzsikusch/queue"
+	entry "muzsikusch/queue/entry"
 
 	"github.com/dexterlb/mpvipc"
 )
@@ -73,6 +73,11 @@ func (s *MpvSource) Resume() error {
 	return s.instance.Set("pause", false)
 }
 
+func (s *MpvSource) GetTimePos() (float32, error) {
+	x, err := s.instance.Get("time-pos")
+	return x.(float32), err
+}
+
 // Seek forward by the given amount
 func (s *MpvSource) Forward(amm int) error {
 	_, err := s.instance.Call("seek", amm)
@@ -104,7 +109,7 @@ func (s *MpvSource) Mute() error {
 	return err
 }
 
-func (s *MpvSource) ResolveTitle(mid *queue.MusicID) (string, error) {
+func (s *MpvSource) ResolveTitle(mid *entry.MusicID) (string, error) {
 	return "", fmt.Errorf("cannot resolve title on mpv source")
 }
 

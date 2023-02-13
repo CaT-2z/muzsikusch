@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"muzsikusch/queue"
+	entry "muzsikusch/queue/entry"
 	"muzsikusch/source"
+	"muzsikusch/websocket"
 )
 
 type Muzsikusch struct {
@@ -12,6 +14,7 @@ type Muzsikusch struct {
 	queue         queue.Queue
 	sources       map[string]source.Source
 	resolvers     map[string]source.TitleResolver
+	wsmanager     *websocket.Manager
 }
 
 func NewMuzsikusch() *Muzsikusch {
@@ -22,35 +25,54 @@ func NewMuzsikusch() *Muzsikusch {
 	}
 }
 
-func (m *Muzsikusch) Play(music_ID queue.MusicID) error {
-	src, ok := m.sources[music_ID.SourceName]
-	if !ok {
-		return fmt.Errorf("Source %s not registered", music_ID.SourceName)
-	}
-	m.currentSource = src
-	return src.Play(music_ID)
+//NOTE: player sends playback events, queue sends queue events
+
+// TODO: Im not sure this is a good way of doing it, but it will work for now
+func (m *Muzsikusch) SetWSManager(man *websocket.Manager) {
+	m.wsmanager = man
+	m.queue.SetWSManager(man)
 }
 
-func (m *Muzsikusch) Enqueue(music_id queue.MusicID) error {
-	if (m.queue.CurrentTrack() == queue.Entry{}) {
+func (m *Muzsikusch) Play(ent entry.Entry) error {
+	fmt.Println("STARTED PLAYING " + ent.Title) //LOGGING
+	src, ok := m.sources[ent.SourceName]
+	if !ok {
+		return fmt.Errorf("Source %s not registered", ent.SourceName)
+	}
+	m.currentSource = src
+	defer m.wsmanager.WriteAll(websocket.CreateTrackStartEvent(ent))
+	return src.Play(ent.MusicID)
+}
+
+func (m *Muzsikusch) Enqueue(music_id entry.MusicID) error {
+	var ent entry.Entry
+	if (m.queue.CurrentTrack() == entry.Entry{}) {
+		ent = m.queue.Append(music_id)
 		fmt.Printf("Queue add: %v\n", m.queue)
-		return m.Play(m.queue.Append(music_id).MusicID)
+		return m.Play(ent)
 	}
 	m.queue.Append(music_id)
 	return nil
 }
 
-func (m *Muzsikusch) Push(music_id queue.MusicID) error {
-	if (m.queue.CurrentTrack() == queue.Entry{}) {
+func (m *Muzsikusch) Push(music_id entry.MusicID) error {
+	if (m.queue.CurrentTrack() == entry.Entry{}) {
 		fmt.Printf("Queue add: %v\n", m.queue)
-		return m.Play(m.queue.Push(music_id).MusicID)
+		return m.Play(m.queue.Push(music_id))
 	}
 	m.queue.Push(music_id)
 	return nil
 }
 
 func (m *Muzsikusch) Pause() error {
-	return m.currentSource.Pause()
+	err := m.currentSource.Pause()
+	if err == nil {
+		x, err := m.currentSource.GetTimePos()
+		if err == nil {
+			m.wsmanager.WriteAll(websocket.CreatePauseEvent(x))
+		}
+	}
+	return err
 }
 func (m *Muzsikusch) Stop() error {
 	m.queue.Flush()
@@ -59,13 +81,20 @@ func (m *Muzsikusch) Stop() error {
 func (m *Muzsikusch) Skip() error {
 	m.currentSource.Skip()
 	if m.queue.Length() > 0 {
-		m.Play(m.queue.Pop().MusicID)
+		m.Play(m.queue.Pop())
 	}
 	m.queue.Pop()
 	return nil
 }
 func (m *Muzsikusch) Resume() error {
-	return m.currentSource.Resume()
+	err := m.currentSource.Resume()
+	if err == nil {
+		x, err := m.currentSource.GetTimePos()
+		if err == nil {
+			m.wsmanager.WriteAll(websocket.CreateUnpauseEvent(x))
+		}
+	}
+	return err
 }
 func (m *Muzsikusch) Forward(amm int) error {
 	return m.currentSource.Forward(amm)
@@ -100,9 +129,9 @@ func (m *Muzsikusch) UnregisterResolver(name string) {
 }
 
 // TODO: Change this too
-func (m *Muzsikusch) Search(query string) []queue.MusicID {
+func (m *Muzsikusch) Search(query string) []entry.MusicID {
 
-	results := make([]queue.MusicID, 0)
+	results := make([]entry.MusicID, 0)
 	for _, src := range m.sources {
 		results = append(results, src.Search(query)...)
 	}
@@ -112,13 +141,13 @@ func (m *Muzsikusch) Search(query string) []queue.MusicID {
 
 func (m *Muzsikusch) OnPlaybackFinished() {
 	if m.queue.Length() > 0 {
-		m.Play(m.queue.Pop().MusicID)
+		m.Play(m.queue.Pop())
 	}
 	m.queue.Pop()
 	log.Printf("Queue: %v\n", m.queue)
 }
 
-func (m *Muzsikusch) ResolveTitle(music_id *queue.MusicID) (string, error) {
+func (m *Muzsikusch) ResolveTitle(music_id *entry.MusicID) (string, error) {
 	resolver, ok := m.resolvers[music_id.SourceName]
 	if !ok {
 		log.Fatalf("Resolver %s not registered", music_id.SourceName)
@@ -127,8 +156,9 @@ func (m *Muzsikusch) ResolveTitle(music_id *queue.MusicID) (string, error) {
 	return resolver.ResolveTitle(music_id)
 }
 
-func (m *Muzsikusch) GetQueue() []queue.MusicID {
-	q := []queue.MusicID{}
+func (m *Muzsikusch) GetQueue() []entry.MusicID {
+	q := []entry.MusicID{}
+	//TODO: THIS shouldnt be like this
 	for _, e := range m.queue.Entries {
 		q = append(q, e.MusicID)
 	}
@@ -151,11 +181,11 @@ func (m *Muzsikusch) SetupSource(source interface {
 
 // searchSource is always "spotify", general search wont work if spotify doesnt work TODO: change that
 // TODO: Drop down bar for the search
-func (player *Muzsikusch) FromUser(query string) []queue.MusicID {
+func (player *Muzsikusch) FromUser(query string) []entry.MusicID {
 
 	for _, source := range player.sources {
 		if ok, mid := source.BelongsToThis(query); ok {
-			return []queue.MusicID{mid}
+			return []entry.MusicID{mid}
 		}
 	}
 	if player == nil {

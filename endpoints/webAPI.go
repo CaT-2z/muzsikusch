@@ -5,7 +5,7 @@ import (
 	"log"
 	"muzsikusch/middleware"
 	"muzsikusch/player"
-	"muzsikusch/queue"
+	entry "muzsikusch/queue/entry"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -83,7 +83,7 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//TODO: this is still bad but its now localised here. Make a better search
-	var MusicID queue.MusicID
+	var MusicID entry.MusicID
 	if len(MusicIDResults) > 0 {
 		MusicID = MusicIDResults[0]
 	}
@@ -169,8 +169,9 @@ func (api *HttpAPI) registerHandles() {
 
 	r := mux.NewRouter()
 
-	r.Handle("/", NewV2APIRouter(r.PathPrefix("/v2/api").Subrouter(), api))
+	NewV2APIRouter(r.PathPrefix("/v2/api").Subrouter(), api)
 	r.Handle("/", http.FileServer(http.Dir("html")))
 
 	http.Handle("/", middleware.AuthRequest(r))
+	//http.Handle("/", http.FileServer(http.Dir("html")))
 }
