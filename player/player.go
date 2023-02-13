@@ -40,6 +40,15 @@ func (m *Muzsikusch) Enqueue(music_id queue.MusicID) error {
 	return nil
 }
 
+func (m *Muzsikusch) Push(music_id queue.MusicID) error {
+	if (m.queue.CurrentTrack() == queue.Entry{}) {
+		fmt.Printf("Queue add: %v\n", m.queue)
+		return m.Play(m.queue.Push(music_id).MusicID)
+	}
+	m.queue.Push(music_id)
+	return nil
+}
+
 func (m *Muzsikusch) Pause() error {
 	return m.currentSource.Pause()
 }

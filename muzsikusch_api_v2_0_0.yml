@@ -134,8 +134,10 @@ paths:
                           type: string
                           example: append
                         Payload:
-                          $ref: "#/components/schemas/Entry"
-                          description: The entry to be appended
+                          type: object
+                          properties:
+                            Entry:
+                              $ref: "#/components/schemas/Entry"
                       required:
                         - Type
                         - Payload
@@ -157,7 +159,10 @@ paths:
                           type: string
                           example: push
                         Payload:
-                          $ref: "#/components/schemas/Entry"
+                          type: object
+                          properties:
+                            Entry:
+                              $ref: "#/components/schemas/Entry"
                       required:
                         - Type
                         - Payload
@@ -179,9 +184,12 @@ paths:
                           type: string
                           example: remove
                         Payload:
-                          type: string
-                          example: UID
-                          description: The UID of the entry to be removed
+                          type: object
+                          properties:
+                            UID:
+                              type: string
+                              example: UID
+                              description: The UID of the entry to be removed
                       required:
                         - Type
                         - Payload
@@ -202,9 +210,12 @@ paths:
                           type: string
                           example: pause
                         Payload:
-                          type: number
-                          example: 54.5
-                          description: The playback time where the server paused.
+                          type: object
+                          properties:
+                            TimeStamp:
+                              type: number
+                              example: 54.5
+                              description: The playback time where the server paused.
               responses:
                 '200':
                   description: OK
@@ -221,9 +232,12 @@ paths:
                           type: string
                           example: unpause
                         Payload:
-                          type: number
-                          example: 54.5
-                          description: The playback time where the server unpaused.
+                          type: object
+                          properties:
+                            TimeStamp:
+                              type: number
+                              example: 54.5
+                              description: The playback time where the server unpaused.
               responses:
                 '200':
                   description: OK
@@ -240,15 +254,18 @@ paths:
                           type: string
                           example: start
                         Payload:
-                          $ref: "#/components/schemas/Entry"
-                          description: The track that starts to play
+                          type: object
+                          properties:
+                            Entry:
+                              $ref: "#/components/schemas/Entry"
+                              description: The new currentTrack
               responses:
                 '200':
                   description: OK
 
       responses:
-        '200':
-          description: Webhook created
+        '201':
+          description: Webhook created, protocol changed
 
   /remove:
     delete:

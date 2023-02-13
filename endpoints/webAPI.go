@@ -7,6 +7,8 @@ import (
 	"muzsikusch/player"
 	"muzsikusch/queue"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 type HttpAPI struct {
@@ -50,68 +52,6 @@ func (api *HttpAPI) getQueue(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(data)
-}
-
-func (api *HttpAPI) search(w http.ResponseWriter, r *http.Request) {
-	type addRequest struct {
-		Query string `json:"query"`
-	}
-
-	var req addRequest
-
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, "Couldn't parse request", http.StatusBadRequest)
-		return
-	}
-
-	query := req.Query
-	if query == "" {
-		http.Error(w, "No title given", http.StatusBadRequest)
-		return
-	}
-
-	MusicIDResults := api.Player.FromUser(query)
-
-	if len(MusicIDResults) == 0 {
-		http.Error(w, "No results", http.StatusInternalServerError)
-	}
-
-	if len(MusicIDResults) == 1 {
-		err = api.Player.Enqueue(MusicIDResults[0])
-		if err != nil {
-			log.Printf("Failed to enqueue: %v\n", err)
-			http.Error(w, "Couldn't enqueue", http.StatusInternalServerError)
-		} else {
-
-		}
-	}
-
-	data, err := json.Marshal(MusicIDResults)
-	if err != nil {
-		http.Error(w, "Couldn't marshal search results", http.StatusInternalServerError)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
-}
-
-// This will replace add to queue
-func (api *HttpAPI) newQueue(w http.ResponseWriter, r *http.Request) {
-	var req queue.MusicID
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, "Couldn't parse request", http.StatusBadRequest)
-		return
-	}
-	err = api.Player.Enqueue(req)
-	if err != nil {
-		log.Printf("Failed to enqueue: %v\n", err)
-		http.Error(w, "Couldn't enqueue", http.StatusInternalServerError)
-	} else {
-		// Maybe send something back?
-		w.WriteHeader(http.StatusCreated)
-	}
 }
 
 func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
@@ -227,5 +167,10 @@ func (api *HttpAPI) registerHandles() {
 	http.Handle("/api/volume", middleware.AuthRequest(GetEndpoint(api.getVolume).WithPost(api.setVolume)))
 	http.Handle("/api/", http.NotFoundHandler())
 
-	http.Handle("/", middleware.AuthRequest(http.FileServer(http.Dir("html"))))
+	r := mux.NewRouter()
+
+	r.Handle("/", NewV2APIRouter(r.PathPrefix("/v2/api").Subrouter(), api))
+	r.Handle("/", http.FileServer(http.Dir("html")))
+
+	http.Handle("/", middleware.AuthRequest(r))
 }
