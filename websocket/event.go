@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	entry "muzsikusch/queue/entry"
+
+	"github.com/jonhoo/go-events"
 )
 
 // Event is the Messages sent over the websocket
@@ -20,24 +22,20 @@ type EventManager struct {
 }
 
 type EventHandler struct {
-	name      string
-	eventFunc EventFunc
+	name string
 }
 
 func NewEventManager() *EventManager {
 	return &EventManager{
 		events: []EventHandler{
 			{
-				name:      "pause",
-				eventFunc: PauseEventHandler,
+				name: "pause",
 			},
 			{
-				name:      "seek",
-				eventFunc: SeekEventHandler,
+				name: "seek",
 			},
 			{
-				name:      "volume",
-				eventFunc: VolumeEventHandler,
+				name: "volume",
 			},
 		},
 	}
@@ -45,7 +43,7 @@ func NewEventManager() *EventManager {
 
 // EventHandler is a function signature that is used to affect messages on the socket and triggered
 // depending on the type
-type EventFunc func(event Event, c *Client) error
+// type EventFunc func(event Event, c *Client) error
 
 type PauseEventPayload struct {
 	TimeStamp float32 `json:"TimeStamp"`
@@ -54,9 +52,10 @@ type PauseEventPayload struct {
 func CreatePauseEvent(timestamp float32) Event {
 	return CreateEvent("pause", PauseEventPayload{TimeStamp: timestamp})
 }
-func PauseEventHandler(event Event, c *Client) error {
-	return nil
-}
+
+// func PauseEventHandler(event Event, c *Client) error {
+// 	return nil
+// }
 
 type UnpauseEventPayload = PauseEventPayload
 
@@ -92,21 +91,16 @@ func CreateRemoveEvent(UID string) Event {
 	return CreateEvent("remove", RemoveEventPayload{UID: UID})
 }
 
-func SeekEventHandler(event Event, c *Client) error {
-	return nil
-}
+// func SeekEventHandler(event Event, c *Client) error {
+// 	return nil
+// }
 
-func VolumeEventHandler(event Event, c *Client) error {
-	return nil
-}
+// func VolumeEventHandler(event Event, c *Client) error {
+// 	return nil
+// }
 
 func (e *EventManager) HandleEvent(event Event, c *Client) error {
-	for _, ev := range e.events {
-		if ev.name == event.Type {
-			return ev.eventFunc(event, c)
-		}
-	}
-	fmt.Println("No event type recognised: ", event.Type)
+	events.Announce(events.Event{event.Type, event.Payload})
 	return nil
 }
 
@@ -122,3 +116,13 @@ func CreateEvent(Type string, v any) Event {
 		Payload: js,
 	}
 }
+
+// func (e *EventManager)SetEventHandler(string event, EventHandler func) bool {
+// 	for _, ev := range e.events {
+// 		if ev.name == event {
+// 			ev.eventFunc = func;
+// 			return true
+// 		}
+// 	}
+// 	return false
+// }

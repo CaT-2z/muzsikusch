@@ -18,12 +18,12 @@ var (
 
 // Takes in a subrouter where it will start matching
 func NewV2APIRouter(r *mux.Router, htapi *HttpAPI) *mux.Router {
-
 	mplayer = htapi.Player
 	htapi.Player.SetWSManager(wsmanager)
 
+	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("pong")) })
 	r.HandleFunc("/search", searchHandler).Methods("GET")
-	r.HandleFunc("/ws", wsmanager.ServeWS).Schemes("ws", "wss")
+	r.HandleFunc("/ws", wsmanager.ServeWS)
 	return r
 }
 

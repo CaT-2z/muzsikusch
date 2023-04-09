@@ -7,6 +7,8 @@ import (
 	entry "muzsikusch/queue/entry"
 	"muzsikusch/source"
 	"muzsikusch/websocket"
+
+	"github.com/jonhoo/go-events"
 )
 
 type Muzsikusch struct {
@@ -15,14 +17,6 @@ type Muzsikusch struct {
 	sources       map[string]source.Source
 	resolvers     map[string]source.TitleResolver
 	wsmanager     *websocket.Manager
-}
-
-func NewMuzsikusch() *Muzsikusch {
-	return &Muzsikusch{
-		queue:     *queue.NewQueue(),
-		sources:   make(map[string]source.Source),
-		resolvers: make(map[string]source.TitleResolver),
-	}
 }
 
 //NOTE: player sends playback events, queue sends queue events
@@ -193,4 +187,32 @@ func (player *Muzsikusch) FromUser(query string) []entry.MusicID {
 	}
 	// I'm trying to remove this part
 	return player.Search(query)
+}
+
+func NewMuzsikusch() *Muzsikusch {
+	m := Muzsikusch{
+		queue:     *queue.NewQueue(),
+		sources:   make(map[string]source.Source),
+		resolvers: make(map[string]source.TitleResolver),
+	}
+
+	//Creates even handlers for the events
+	eventHandlers := map[string]func(interface{}){
+		"pause":   func(interface{}) { m.Pause() },
+		"unpause": func(interface{}) { m.Resume() },
+	}
+
+	//Registers these, starts them in a goroutine
+	for ev := range eventHandlers {
+		str := ev
+		go func() {
+			chn := events.Listen(str)
+			defer close(chn)
+			for e := range chn {
+				eventHandlers[str](e.Data)
+			}
+		}()
+	}
+
+	return &m
 }

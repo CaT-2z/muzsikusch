@@ -92,6 +92,7 @@ func (m *Manager) removeClient(client *Client) {
 // Writes to all clients
 func (m *Manager) WriteAll(e Event) {
 	for client, ok := range m.clients {
+		log.Println("Am writing")
 		if ok {
 			client.egress <- e
 		}

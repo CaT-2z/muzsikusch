@@ -75,7 +75,10 @@ func (s *MpvSource) Resume() error {
 
 func (s *MpvSource) GetTimePos() (float32, error) {
 	x, err := s.instance.Get("time-pos")
-	return x.(float32), err
+	if x == nil {
+		return 0, err
+	}
+	return float32(x.(float64)), err
 }
 
 // Seek forward by the given amount
