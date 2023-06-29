@@ -50,11 +50,13 @@ func (m *Muzsikusch) Enqueue(music_id entry.MusicID) error {
 }
 
 func (m *Muzsikusch) Push(music_id entry.MusicID) error {
-	if (m.queue.CurrentTrack() == entry.Entry{}) {
+	isFirst := (m.queue.CurrentTrack() == entry.Entry{})
+	ent := m.queue.Push(music_id)
+	m.wsmanager.WriteAll(websocket.CreatePushEvent(ent))
+	if isFirst {
 		fmt.Printf("Queue add: %v\n", m.queue)
-		return m.Play(m.queue.Push(music_id))
+		return m.Play(ent)
 	}
-	m.queue.Push(music_id)
 	return nil
 }
 
@@ -77,9 +79,15 @@ func (m *Muzsikusch) Skip() error {
 	if m.queue.Length() > 0 {
 		m.Play(m.queue.Pop())
 	}
-	m.queue.Pop()
+	m.wsmanager.WriteAll(websocket.CreateRemoveEvent(m.queue.Pop().UID))
 	return nil
 }
+
+func (m *Muzsikusch) Remove(UID string) bool {
+	m.wsmanager.WriteAll(websocket.CreateRemoveEvent(UID))
+	return m.queue.RemoveTrack(UID)
+}
+
 func (m *Muzsikusch) Resume() error {
 	err := m.currentSource.Resume()
 	if err == nil {

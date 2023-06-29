@@ -38,6 +38,7 @@ func (q *Queue) Append(track entry.MusicID) entry.Entry {
 
 	q.Entries = append(q.Entries, e)
 	fmt.Println("ADDED " + e.Title) //LOGGING
+	q.wsmanager.WriteAll(websocket.CreateAppendEvent(e))
 	return e
 }
 
@@ -50,6 +51,7 @@ func (q *Queue) AppendWithTime(track entry.MusicID, timeStamp float32) entry.Ent
 	}
 
 	q.Entries = append(q.Entries, e)
+	q.wsmanager.WriteAll(websocket.CreateAppendEvent(e))
 	return e
 }
 
@@ -58,6 +60,7 @@ func (q *Queue) RemoveTrack(UID string) bool {
 	for i, e := range q.Entries {
 		if e.UID == UID {
 			q.Entries = append(q.Entries[:i], q.Entries[i+1:]...)
+			q.wsmanager.WriteAll(websocket.CreateRemoveEvent(UID))
 			return true
 		}
 	}
@@ -75,6 +78,7 @@ func (q *Queue) RemoveMultiple(UID string) (b bool) {
 		}
 	}
 	q.Entries = nq
+	q.wsmanager.WriteAll(websocket.CreateRemoveEvent(UID))
 	return
 }
 
@@ -90,6 +94,7 @@ func (q *Queue) Push(track entry.MusicID) entry.Entry {
 	} else {
 		q.Entries = append(q.Entries, e)
 	}
+	q.wsmanager.WriteAll(websocket.CreatePushEvent(e))
 	return e
 }
 
@@ -103,6 +108,7 @@ func (q *Queue) ForcePush(track entry.MusicID, timeStamp float32) entry.Entry {
 		q.Entries[0].StartTime = timeStamp
 	}
 	q.Entries = append([]entry.Entry{e}, q.Entries...)
+	q.wsmanager.WriteAll(websocket.CreatePushEvent(e))
 	return e
 }
 
@@ -117,6 +123,7 @@ func (q *Queue) AddMultiple(tracks []entry.MusicID) string {
 			PlaylistID: string(playlistHash[:]),
 		}
 		q.Entries = append(q.Entries, e)
+		q.wsmanager.WriteAll(websocket.CreateAppendEvent(e))
 	}
 	return string(playlistHash[:])
 }
@@ -133,6 +140,7 @@ func (q *Queue) AddPlaylist(p entry.Playlist) string {
 			Playlist:   p.ID,
 		}
 		q.Entries = append(q.Entries, e)
+		q.wsmanager.WriteAll(websocket.CreateAppendEvent(e))
 	}
 	return string(playlistHash[:])
 }
@@ -146,8 +154,10 @@ func (q *Queue) Pop() (e entry.Entry) {
 		q.Entries = []entry.Entry{}
 		return entry.Entry{}
 	}
+	e = q.Entries[0]
 	q.Entries = q.Entries[1:]
-	return q.Entries[0]
+	q.wsmanager.WriteAll(websocket.CreateRemoveEvent(e.UID))
+	return
 }
 
 func (q *Queue) GetQueue() []entry.Entry {

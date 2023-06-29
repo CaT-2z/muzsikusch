@@ -68,6 +68,18 @@ components:
         $ref: "#/components/schemas/musicID"
       
 paths:
+  /queue:
+    get:
+      description: Returns the current track queue
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Entry"
   /search:
     get:
       parameters:

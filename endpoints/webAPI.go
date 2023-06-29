@@ -169,7 +169,6 @@ func (api *HttpAPI) registerHandles() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("pong")) })
 	NewV2APIRouter(r.PathPrefix("/v2/api").Subrouter(), api)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("html")))
 

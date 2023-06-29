@@ -26,6 +26,12 @@ function action(endpoint) {
     })
 }
 
+function refreshQueue() {
+    fetch('/v2/api/queue').then(function(resp) {
+        //YOU WERE HERE
+    })
+}
+
 function ws() {
     console.log("started")
     socket = new WebSocket("ws://" + window.location.host + "/v2/api/ws");

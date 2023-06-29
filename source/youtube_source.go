@@ -127,11 +127,7 @@ func (s *YoutubeSource) Search(query string) []entry.MusicID {
 
 	ret := make([]entry.MusicID, 0)
 	for _, song := range results.Items {
-		ret = append(ret, entry.MusicID{
-			TrackID:    song.ID.VideoID,
-			SourceName: "youtube",
-			Title:      song.Snippet.Title,
-		})
+		ret = append(ret, s.getMusicIDFromCanonical(song.ID.VideoID))
 	}
 
 	return ret
@@ -153,29 +149,32 @@ func (s *YoutubeSource) ResolveTitle(MusicID *entry.MusicID) (string, error) {
 func (c *YoutubeSource) BelongsToThis(query string) (bool, entry.MusicID) {
 	switch {
 	case strings.HasPrefix(query, "https://www.youtube.com/watch?v="):
-		m := entry.MusicID{
-			TrackID:    query[len("https://www.youtube.com/watch?v=") : len("https://www.youtube.com/watch?v=")+11],
-			SourceName: "youtube",
-		}
-		m.Title, _ = c.ResolveTitle(&m)
+		m := c.getMusicIDFromCanonical(query[len("https://www.youtube.com/watch?v=") : len("https://www.youtube.com/watch?v=")+11])
 		return true, m
 	case strings.HasPrefix(query, "https://youtu.be/"):
-		m := entry.MusicID{
-			TrackID:    query[len("https://youtu.be/") : len("https://youtu.be/")+11],
-			SourceName: "youtube",
-		}
-		m.Title, _ = c.ResolveTitle(&m)
+		m := c.getMusicIDFromCanonical(query[len("https://youtu.be/") : len("https://youtu.be/")+11])
 		return true, m
 	case isYoutubeID(query):
-		m := entry.MusicID{
-			TrackID:    query,
-			SourceName: "youtube",
-		}
-		m.Title, _ = c.ResolveTitle(&m)
+		m := c.getMusicIDFromCanonical(query)
 		return true, m
 	default:
 		return false, entry.MusicID{}
 	}
+}
+
+func (c *YoutubeSource) getMusicIDFromCanonical(ID string) entry.MusicID {
+	yt := &youtube.Client{}
+	vid, _ := yt.GetVideo(ID)
+
+	m := entry.MusicID{
+		TrackID:    ID,
+		SourceName: "youtube",
+		Title:      vid.Title,
+		Author:     vid.Author,
+		ArtworkURL: vid.Thumbnails[0].URL,
+		Duration:   vid.Duration,
+	}
+	return m
 }
 
 func getBestAudio(formats youtube.FormatList) youtube.Format {
