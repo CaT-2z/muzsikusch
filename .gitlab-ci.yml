@@ -17,6 +17,7 @@ format:
 compile:
   stage: build
   script:
+    - go mod tidy
     - mkdir -p build
     - go build -o build ./...
   artifacts:
