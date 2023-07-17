@@ -19,7 +19,8 @@ type Queue struct {
 
 func NewQueue() (queue *Queue) {
 	queue = &Queue{
-		Entries: make([]entry.Entry, 0),
+		Entries:   make([]entry.Entry, 0),
+		wsmanager: websocket.NewManager(),
 	}
 	return
 }
@@ -90,9 +91,9 @@ func (q *Queue) Push(track entry.MusicID) entry.Entry {
 		UID:     base64.StdEncoding.EncodeToString(hash[:]),
 	}
 	if len(q.Entries) < 1 {
-		q.Entries = append([]entry.Entry{q.Entries[0], e}, q.Entries[1:]...)
-	} else {
 		q.Entries = append(q.Entries, e)
+	} else {
+		q.Entries = append([]entry.Entry{q.Entries[0], e}, q.Entries[1:]...)
 	}
 	q.wsmanager.WriteAll(websocket.CreatePushEvent(e))
 	return e
@@ -149,8 +150,9 @@ func (q *Queue) Length() int {
 	return len(q.Entries) - 1
 }
 
+// Ill need to look at this
 func (q *Queue) Pop() (e entry.Entry) {
-	if len(q.Entries) < 2 {
+	if len(q.Entries) < 1 {
 		q.Entries = []entry.Entry{}
 		return entry.Entry{}
 	}

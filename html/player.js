@@ -14,7 +14,7 @@ function enqueue() {
             //Clear the search box
             document.getElementById('query').value = ''
         } else {
-            alert('Error adding to queue: '+response.statusText)
+            alert('Error adding to queue: '+ response.statusText)
         }
     })
 }
@@ -28,7 +28,7 @@ function action(endpoint) {
 
 function refreshQueue() {
     fetch('/v2/api/queue').then(function(resp) {
-        //YOU WERE HERE
+
     })
 }
 
