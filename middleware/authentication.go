@@ -45,7 +45,7 @@ func SetupAuthSCH() {
 
 	js, err := os.Open(os.Getenv("WHITELIST_PATH"))
 	if err != nil {
-		panic(fmt.Errorf("Couldn't open whitelist file", err))
+		panic(fmt.Errorf("couldn't open whitelist file: %s", err))
 	}
 
 	all, err := io.ReadAll(js)

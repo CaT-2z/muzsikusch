@@ -100,7 +100,7 @@ func CreateRemoveEvent(UID string) Event {
 // }
 
 func (e *EventManager) HandleEvent(event Event, c *Client) error {
-	events.Announce(events.Event{event.Type, event.Payload})
+	events.Announce(events.Event{Tag: event.Type, Data: event.Payload})
 	return nil
 }
 
