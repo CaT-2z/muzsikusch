@@ -16,6 +16,8 @@ format:
 compile:
   stage: build
   image: docker:latest
+  tags:
+    - priviliged
   services:
     - docker:dind
   script:
