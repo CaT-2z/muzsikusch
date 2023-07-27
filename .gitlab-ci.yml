@@ -17,7 +17,7 @@ compile:
   stage: build
   image: docker:latest
   script:
-    - echo "$HARBOR_PSWD" | docker login -u "$HARBOR_UNAME" registry.gitlab.com --password-stdin
+    - echo "$HARBOR_PSWD" | docker login -u "$HARBOR_UNAME" harbor.sch.bme.hu --password-stdin
     - docker pull muzsikusch:build || true # could use colon, but that fs up the formatting 
     - docker pull muzsikusch:latest || true 
     - docker build --target build --cache-from=muzsikusch:build --tag muzsikusch:build .
