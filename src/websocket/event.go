@@ -3,7 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"fmt"
-	entry "muzsikusch/queue/entry"
+	"muzsikusch/src/queue/entry"
 
 	"github.com/jonhoo/go-events"
 )

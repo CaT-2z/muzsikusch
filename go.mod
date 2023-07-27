@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	git.sch.bme.hu/kszk/opensource/authsch-go v0.0.0-20220512182944-b430d75f76f0
+	github.com/blang/mpv v0.0.0-20160810175505-d56d7352e068
 	github.com/dexterlb/mpvipc v0.0.0-20210824102722-5d27ef06b6c3
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/gorilla/mux v1.8.0

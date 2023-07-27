@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 	"math"
-	entry "muzsikusch/queue/entry"
+	"muzsikusch/src/queue/entry"
 	"os"
 	"strings"
 	"time"

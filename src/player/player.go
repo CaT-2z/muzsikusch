@@ -2,45 +2,44 @@ package player
 
 import (
 	"fmt"
-	"log"
-	"muzsikusch/queue"
-	entry "muzsikusch/queue/entry"
-	"muzsikusch/source"
-	"muzsikusch/websocket"
-
 	"github.com/jonhoo/go-events"
+	"log"
+	"muzsikusch/src/queue"
+	entry2 "muzsikusch/src/queue/entry"
+	source2 "muzsikusch/src/source"
+	websocket2 "muzsikusch/src/websocket"
 )
 
 type Muzsikusch struct {
-	currentSource source.Source
+	currentSource source2.Source
 	queue         queue.Queue
-	sources       map[string]source.Source
-	resolvers     map[string]source.TitleResolver
-	wsmanager     *websocket.Manager
+	sources       map[string]source2.Source
+	resolvers     map[string]source2.TitleResolver
+	wsmanager     *websocket2.Manager
 }
 
 //NOTE: player sends playback events, queue sends queue events
 
 // TODO: Im not sure this is a good way of doing it, but it will work for now
-func (m *Muzsikusch) SetWSManager(man *websocket.Manager) {
+func (m *Muzsikusch) SetWSManager(man *websocket2.Manager) {
 	m.wsmanager = man
 	m.queue.SetWSManager(man)
 }
 
-func (m *Muzsikusch) Play(ent entry.Entry) error {
+func (m *Muzsikusch) Play(ent entry2.Entry) error {
 	fmt.Println("STARTED PLAYING " + ent.Title) //LOGGING
 	src, ok := m.sources[ent.SourceName]
 	if !ok {
 		return fmt.Errorf("Source %s not registered", ent.SourceName)
 	}
 	m.currentSource = src
-	defer m.wsmanager.WriteAll(websocket.CreateTrackStartEvent(ent))
+	defer m.wsmanager.WriteAll(websocket2.CreateTrackStartEvent(ent))
 	return src.Play(ent.MusicID)
 }
 
-func (m *Muzsikusch) Enqueue(music_id entry.MusicID) error {
-	var ent entry.Entry
-	if (m.queue.CurrentTrack() == entry.Entry{}) {
+func (m *Muzsikusch) Enqueue(music_id entry2.MusicID) error {
+	var ent entry2.Entry
+	if (m.queue.CurrentTrack() == entry2.Entry{}) {
 		ent = m.queue.Append(music_id)
 		fmt.Printf("Queue add: %v\n", m.queue)
 		return m.Play(ent)
@@ -49,10 +48,10 @@ func (m *Muzsikusch) Enqueue(music_id entry.MusicID) error {
 	return nil
 }
 
-func (m *Muzsikusch) Push(music_id entry.MusicID) error {
-	isFirst := (m.queue.CurrentTrack() == entry.Entry{})
+func (m *Muzsikusch) Push(music_id entry2.MusicID) error {
+	isFirst := (m.queue.CurrentTrack() == entry2.Entry{})
 	ent := m.queue.Push(music_id)
-	m.wsmanager.WriteAll(websocket.CreatePushEvent(ent))
+	m.wsmanager.WriteAll(websocket2.CreatePushEvent(ent))
 	if isFirst {
 		fmt.Printf("Queue add: %v\n", m.queue)
 		return m.Play(ent)
@@ -65,7 +64,7 @@ func (m *Muzsikusch) Pause() error {
 	if err == nil {
 		x, err := m.currentSource.GetTimePos()
 		if err == nil {
-			m.wsmanager.WriteAll(websocket.CreatePauseEvent(x))
+			m.wsmanager.WriteAll(websocket2.CreatePauseEvent(x))
 		}
 	}
 	return err
@@ -79,12 +78,12 @@ func (m *Muzsikusch) Skip() error {
 	if m.queue.Length() > 0 {
 		m.Play(m.queue.Pop())
 	}
-	m.wsmanager.WriteAll(websocket.CreateRemoveEvent(m.queue.Pop().UID))
+	m.wsmanager.WriteAll(websocket2.CreateRemoveEvent(m.queue.Pop().UID))
 	return nil
 }
 
 func (m *Muzsikusch) Remove(UID string) bool {
-	m.wsmanager.WriteAll(websocket.CreateRemoveEvent(UID))
+	m.wsmanager.WriteAll(websocket2.CreateRemoveEvent(UID))
 	return m.queue.RemoveTrack(UID)
 }
 
@@ -93,7 +92,7 @@ func (m *Muzsikusch) Resume() error {
 	if err == nil {
 		x, err := m.currentSource.GetTimePos()
 		if err == nil {
-			m.wsmanager.WriteAll(websocket.CreateUnpauseEvent(x))
+			m.wsmanager.WriteAll(websocket2.CreateUnpauseEvent(x))
 		}
 	}
 	return err
@@ -114,7 +113,7 @@ func (m *Muzsikusch) Mute() error {
 	return m.currentSource.Mute()
 }
 
-func (m *Muzsikusch) RegisterSource(source source.Source, name string) {
+func (m *Muzsikusch) RegisterSource(source source2.Source, name string) {
 	m.sources[name] = source
 }
 
@@ -122,7 +121,7 @@ func (m *Muzsikusch) UnregisterSource(name string) {
 	m.sources[name] = nil
 }
 
-func (m *Muzsikusch) RegisterResolver(resolver source.TitleResolver, name string) {
+func (m *Muzsikusch) RegisterResolver(resolver source2.TitleResolver, name string) {
 	m.resolvers[name] = resolver
 }
 
@@ -131,9 +130,9 @@ func (m *Muzsikusch) UnregisterResolver(name string) {
 }
 
 // TODO: Change this too
-func (m *Muzsikusch) Search(query string) []entry.MusicID {
+func (m *Muzsikusch) Search(query string) []entry2.MusicID {
 
-	results := make([]entry.MusicID, 0)
+	results := make([]entry2.MusicID, 0)
 	for _, src := range m.sources {
 		results = append(results, src.Search(query)...)
 	}
@@ -149,7 +148,7 @@ func (m *Muzsikusch) OnPlaybackFinished() {
 	log.Printf("Queue: %v\n", m.queue)
 }
 
-func (m *Muzsikusch) ResolveTitle(music_id *entry.MusicID) (string, error) {
+func (m *Muzsikusch) ResolveTitle(music_id *entry2.MusicID) (string, error) {
 	resolver, ok := m.resolvers[music_id.SourceName]
 	if !ok {
 		log.Fatalf("Resolver %s not registered", music_id.SourceName)
@@ -158,8 +157,8 @@ func (m *Muzsikusch) ResolveTitle(music_id *entry.MusicID) (string, error) {
 	return resolver.ResolveTitle(music_id)
 }
 
-func (m *Muzsikusch) GetQueue() []entry.MusicID {
-	q := []entry.MusicID{}
+func (m *Muzsikusch) GetQueue() []entry2.MusicID {
+	q := []entry2.MusicID{}
 	//TODO: THIS shouldnt be like this
 	for _, e := range m.queue.Entries {
 		q = append(q, e.MusicID)
@@ -169,8 +168,8 @@ func (m *Muzsikusch) GetQueue() []entry.MusicID {
 
 // Registers the source if it went down without errors
 func (m *Muzsikusch) SetupSource(source interface {
-	source.Source
-	source.TitleResolver
+	source2.Source
+	source2.TitleResolver
 }, name string, err error) {
 	if err != nil {
 		fmt.Printf("SetupSource: Will start without %s: %s\n", name, err)
@@ -183,11 +182,11 @@ func (m *Muzsikusch) SetupSource(source interface {
 
 // searchSource is always "spotify", general search wont work if spotify doesnt work TODO: change that
 // TODO: Drop down bar for the search
-func (player *Muzsikusch) FromUser(query string) []entry.MusicID {
+func (player *Muzsikusch) FromUser(query string) []entry2.MusicID {
 
 	for _, source := range player.sources {
 		if ok, mid := source.BelongsToThis(query); ok {
-			return []entry.MusicID{mid}
+			return []entry2.MusicID{mid}
 		}
 	}
 	if player == nil {
@@ -200,8 +199,8 @@ func (player *Muzsikusch) FromUser(query string) []entry.MusicID {
 func NewMuzsikusch() *Muzsikusch {
 	m := Muzsikusch{
 		queue:     *queue.NewQueue(),
-		sources:   make(map[string]source.Source),
-		resolvers: make(map[string]source.TitleResolver),
+		sources:   make(map[string]source2.Source),
+		resolvers: make(map[string]source2.TitleResolver),
 	}
 
 	//Creates even handlers for the events

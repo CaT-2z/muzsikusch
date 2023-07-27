@@ -1,0 +1,13 @@
+version: '2'
+
+services:
+  muzsikusch:
+    build: .
+    ports:
+      - "80:8000"
+    volumes:
+      -  ./whitelist.json:/go/muzsikusch/whitelist.json
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true

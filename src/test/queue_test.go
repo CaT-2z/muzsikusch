@@ -1,8 +1,8 @@
 package test
 
 import (
-	"muzsikusch/queue"
-	"muzsikusch/queue/entry"
+	"muzsikusch/src/queue"
+	"muzsikusch/src/queue/entry"
 	"testing"
 )
 

@@ -3,9 +3,9 @@ package endpoints
 import (
 	"encoding/json"
 	"log"
-	"muzsikusch/middleware"
-	"muzsikusch/player"
-	entry "muzsikusch/queue/entry"
+	"muzsikusch/src/middleware"
+	"muzsikusch/src/player"
+	"muzsikusch/src/queue/entry"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -31,7 +31,7 @@ func (api *HttpAPI) startSecureServer(chainPath, privkeyPath string) {
 
 func (api *HttpAPI) StartServer() {
 	api.registerHandles()
-	err := http.ListenAndServe(":80", nil)
+	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		log.Printf("Failed to serve and listen: %v\n", err)
 	}

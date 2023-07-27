@@ -3,9 +3,9 @@ package endpoints
 import (
 	"encoding/json"
 	"log"
-	"muzsikusch/player"
-	entry "muzsikusch/queue/entry"
-	"muzsikusch/websocket"
+	"muzsikusch/src/player"
+	"muzsikusch/src/queue/entry"
+	"muzsikusch/src/websocket"
 	"net/http"
 
 	"github.com/gorilla/mux"

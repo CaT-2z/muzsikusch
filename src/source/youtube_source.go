@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	entry "muzsikusch/queue/entry"
+	"muzsikusch/src/queue/entry"
 	"net/http"
 	"net/url"
 	"os"
@@ -44,7 +44,7 @@ func NewYoutubeSource() (src *YoutubeSource, name string, err error) {
 		fmt.Println("Search via youtube disabled, reason:", otherErr)
 	}
 
-	go src.waitForEnd(context.Background())
+	//go src.waitForEnd(context.Background())
 
 	return
 }
@@ -92,11 +92,7 @@ func (s *YoutubeSource) Play(MusicID entry.MusicID) error {
 		return err
 	}
 
-	_, err = s.instance.Call("loadfile", url)
-	if err == nil {
-		s.isActive = true
-	}
-	return err
+	return s.PlayUrl(url)
 }
 
 func (s *YoutubeSource) Search(query string) []entry.MusicID {

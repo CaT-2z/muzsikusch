@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	entry "muzsikusch/queue/entry"
+	"muzsikusch/src/queue/entry"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,7 +42,7 @@ func NewSoundcloudSource() (src *SoundcloudSource, name string, err error) {
 		panic(err)
 	}
 
-	go src.waitForEnd(context.Background())
+	//go src.waitForEnd(context.Background())
 
 	return
 }
@@ -78,12 +78,7 @@ func (c *SoundcloudSource) Play(m entry.MusicID) error {
 		return fmt.Errorf("Soundcloud couldnt get StreamURL: %s", err)
 	}
 
-	_, err = c.instance.Call("loadfile", url)
-	if err == nil {
-		c.isActive = true
-	}
-	return err
-
+	return c.PlayUrl(url)
 }
 
 func (c *SoundcloudSource) GetStreamURL(m entry.MusicID) (url string, err error) {

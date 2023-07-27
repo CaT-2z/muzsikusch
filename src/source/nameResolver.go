@@ -1,6 +1,8 @@
 package source
 
-import entry "muzsikusch/queue/entry"
+import (
+	"muzsikusch/src/queue/entry"
+)
 
 type TitleResolver interface {
 	ResolveTitle(*entry.MusicID) (string, error)
