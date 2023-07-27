@@ -17,8 +17,9 @@ compile:
   stage: build
   image: docker:latest
   services:
-  - docker:dind
+    - docker:dind
   script:
+    - docker info #Magic docker fixer line, put this before other docker commands
     - echo "$HARBOR_PSWD" | docker login -u "$HARBOR_UNAME" harbor.sch.bme.hu --password-stdin
     - docker pull muzsikusch:build || true # could use colon, but that fs up the formatting 
     - docker pull muzsikusch:latest || true 
