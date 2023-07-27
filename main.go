@@ -1,18 +1,23 @@
 package main
 
 import (
+	"muzsikusch/src/endpoints"
+	"muzsikusch/src/middleware"
+	source2 "muzsikusch/src/source"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
-const redirectURI = "http://localhost:8080/callback"
-
 func main() {
-	os.Setenv("SOUNDCLOUD_TOKEN_PATH", "./soundcloud_token.json")
+	godotenv.Load()
 
-	api := NewHttpAPI()
-	api.player.SetupSource(NewSpotifyFromToken(os.Getenv("SPOTIFY_TOKEN_PATH")))
-	api.player.SetupSource(NewYoutubeSource())
-	api.player.SetupSource(NewSoundcloudSource())
+	middleware.SetupAuthSCH()
+	middleware.SessionsInit()
+	api := endpoints.NewHttpAPI()
+	api.Player.SetupSource(source2.NewSpotifyFromToken(os.Getenv("SPOTIFY_TOKEN_PATH")))
+	api.Player.SetupSource(source2.NewYoutubeSource())
+	api.Player.SetupSource(source2.NewSoundcloudSource())
 
-	api.startServer()
+	api.StartServer()
 }

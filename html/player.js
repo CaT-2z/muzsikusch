@@ -1,3 +1,7 @@
+var socket
+
+document.onload = ws()
+
 function enqueue() {
     query = document.getElementById('query').value
     fetch('/api/queue', {
@@ -10,7 +14,7 @@ function enqueue() {
             //Clear the search box
             document.getElementById('query').value = ''
         } else {
-            alert('Error adding to queue: '+response.statusText)
+            alert('Error adding to queue: '+ response.statusText)
         }
     })
 }
@@ -20,6 +24,25 @@ function action(endpoint) {
         //Refresh queue
         updateQueue()
     })
+}
+
+function refreshQueue() {
+    fetch('/v2/api/queue').then(function(resp) {
+
+    })
+}
+
+function ws() {
+    console.log("started")
+    socket = new WebSocket("ws://" + window.location.host + "/v2/api/ws");
+
+    socket.onopen = () => {
+        console.log("Connected")
+    }
+
+    socket.onmessage = function (evt) {
+        console.log("Got a message")
+    };
 }
 
 function updateQueue() {

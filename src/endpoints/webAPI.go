@@ -1,19 +1,23 @@
-package main
+package endpoints
 
 import (
 	"encoding/json"
 	"log"
+	"muzsikusch/src/middleware"
+	"muzsikusch/src/player"
+	"muzsikusch/src/queue/entry"
 	"net/http"
-	"os"
+
+	"github.com/gorilla/mux"
 )
 
 type HttpAPI struct {
-	player *Muzsikusch
+	Player *player.Muzsikusch
 }
 
 func NewHttpAPI() *HttpAPI {
 	return &HttpAPI{
-		player: NewMuzsikusch(),
+		Player: player.NewMuzsikusch(),
 	}
 }
 
@@ -25,18 +29,23 @@ func (api *HttpAPI) startSecureServer(chainPath, privkeyPath string) {
 	}
 }
 
-func (api *HttpAPI) startServer() {
+func (api *HttpAPI) StartServer() {
 	api.registerHandles()
-	err := http.ListenAndServe(":80", nil)
+	err := http.ListenAndServe(":8000", nil)
 	if err != nil {
 		log.Printf("Failed to serve and listen: %v\n", err)
 	}
 }
 
 func (api *HttpAPI) getQueue(w http.ResponseWriter, r *http.Request) {
-	queue := api.player.GetQueue()
+	queue := api.Player.GetQueue()
 
-	data, err := json.Marshal(queue)
+	list := make([]struct{ Title string }, len(queue))
+	for i, entry := range queue {
+		list[i] = struct{ Title string }{Title: entry.Title}
+	}
+
+	data, err := json.Marshal(list)
 	if err != nil {
 		http.Error(w, "Couldn't marshal queue", http.StatusInternalServerError)
 	}
@@ -64,11 +73,30 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	source := "spotify"
+	// I moved the part that separates out a single spotify track here, will still need to remove sometime
 
-	musicid := FromUser(query, api.player, source)
+	MusicIDResults := api.Player.FromUser(query)
 
-	err = api.player.Enqueue(musicid)
+	_, err = json.Marshal(MusicIDResults)
+	if err != nil {
+		http.Error(w, "Couldn't marshal search results", http.StatusInternalServerError)
+	}
+
+	//TODO: this is still bad but its now localised here. Make a better search
+	var MusicID entry.MusicID
+	if len(MusicIDResults) > 0 {
+		MusicID = MusicIDResults[0]
+	}
+	if len(MusicIDResults) > 1 {
+		for _, song := range MusicIDResults {
+			if song.SourceName == "spotify" {
+				MusicID = song
+				break
+			}
+		}
+	}
+
+	err = api.Player.Enqueue(MusicID)
 	if err != nil {
 		log.Printf("Failed to enqueue: %v\n", err)
 		http.Error(w, "Couldn't enqueue", http.StatusInternalServerError)
@@ -79,7 +107,7 @@ func (api *HttpAPI) addToQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *HttpAPI) getVolume(w http.ResponseWriter, r *http.Request) {
-	volume, err := api.player.GetVolume()
+	volume, err := api.Player.GetVolume()
 	if err != nil {
 		log.Printf("Failed to get volume: %v\n", err)
 		http.Error(w, "Couldn't get volume", http.StatusInternalServerError)
@@ -108,7 +136,7 @@ func (api *HttpAPI) setVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = api.player.SetVolume(volume)
+	err = api.Player.SetVolume(volume)
 	if err != nil {
 		log.Printf("Failed to set volume: %v\n", err)
 		http.Error(w, "Couldn't set volume", http.StatusInternalServerError)
@@ -119,29 +147,31 @@ func (api *HttpAPI) setVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *HttpAPI) registerHandles() {
-	passwords, err := os.Open("passwords.json")
-	if err != nil {
-		panic(err)
-	}
+	//Maybe have a separate search and queue function?
 
-	validator, err := NewBasicPasswordValidator(passwords)
-	if err != nil {
-		panic(err)
-	}
-
-	auth := NewBasicAuthenticator("muzsikusch", validator)
+	http.Handle("/callback", middleware.AuthHandler)
 
 	queueEndpoint := EmptyEndpoint().WithGet(api.getQueue).WithPost(api.addToQueue)
-	http.Handle("/api/queue", auth.Wrap(queueEndpoint))
+	http.Handle("/api/queue", middleware.AuthRequest(queueEndpoint))
 
-	http.Handle("/api/resume", auth.Wrap(SimpleEndpoint(api.player.Resume)))
-	http.Handle("/api/pause", auth.Wrap(SimpleEndpoint(api.player.Pause)))
-	http.Handle("/api/skip", auth.Wrap(SimpleEndpoint(api.player.Skip)))
-	http.Handle("/api/mute", auth.Wrap(SimpleEndpoint(api.player.Mute)))
-	http.Handle("/api/stop", auth.Wrap(SimpleEndpoint(api.player.Stop)))
-	// TODO: Seek
-	http.Handle("/api/volume", auth.Wrap(GetEndpoint(api.getVolume).WithPost(api.setVolume)))
+	http.Handle("/api/resume", middleware.AuthRequest(SimpleEndpoint(api.Player.Resume)))
+	http.Handle("/api/pause", middleware.AuthRequest(SimpleEndpoint(api.Player.Pause)))
+	http.Handle("/api/skip", middleware.AuthRequest(SimpleEndpoint(api.Player.Skip)))
+	http.Handle("/api/mute", middleware.AuthRequest(SimpleEndpoint(api.Player.Mute)))
+	http.Handle("/api/stop", middleware.AuthRequest(SimpleEndpoint(api.Player.Stop)))
+	/* TODO:
+	- Seek
+	- Search
+	- Delete
+	*/
+	http.Handle("/api/volume", middleware.AuthRequest(GetEndpoint(api.getVolume).WithPost(api.setVolume)))
 	http.Handle("/api/", http.NotFoundHandler())
 
-	http.Handle("/", http.FileServer(http.Dir("html")))
+	r := mux.NewRouter()
+
+	NewV2APIRouter(r.PathPrefix("/v2/api").Subrouter(), api)
+	r.PathPrefix("/").Handler(http.FileServer(http.Dir("html")))
+
+	http.Handle("/", middleware.AuthRequest(r))
+	//http.Handle("/", http.FileServer(http.Dir("html")))
 }

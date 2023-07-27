@@ -1,7 +1,10 @@
 go.sum
 muzsikusch
 spotify_token.json
-soundcloud_token.json
 .vscode/
+.idea/
 passwords.json
-passwordHashCreator
+.env
+src/src
+rpcserver/rpcserver
+whitelist.json
