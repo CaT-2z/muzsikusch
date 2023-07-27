@@ -15,6 +15,7 @@ format:
 
 compile:
   stage: build
+  image: docker:latest
   script:
     - echo "$HARBOR_PSWD" | docker login -u "$HARBOR_UNAME" registry.gitlab.com --password-stdin
     - docker pull muzsikusch:build || true # could use colon, but that fs up the formatting 
