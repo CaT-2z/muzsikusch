@@ -25,11 +25,17 @@ format:
 compile:
   stage: build
   script:
-    - mkdir -p mybinaries
-    - go build -o mybinaries ./...
-  artifacts:
-    paths:
-      - mybinaries
+    - echo "$HARBOR_PSWD" | docker login -u "$HARBOR_UNAME" registry.gitlab.com --password-stdin
+    - docker pull muzsikusch:build || true # could use colon, but that fs up the formatting 
+    - docker pull muzsikusch:latest || true 
+    - docker build --target build --cache-from=muzsikusch:build --tag muzsikusch:build .
+    - docker build --cache-from=muzsikusch:build --cache-from=muzsikusch:latest --tag temp .
+    - docker tag temp muzsikusch:$CI_COMMIT_SHORT_SHA
+    - docker tag temp muzsikusch:latest
+    - docker push muzsikusch:build
+    - docker push muzsikusch:$CI_COMMIT_SHORT_SHA
+    - docker push muzsikusch:latest
+    - docker image rm temp muzsikusch:$CI_COMMIT_SHORT_SHA muzsikusch:latest muzsikusch:build
 
 deploy:
   stage: deploy
