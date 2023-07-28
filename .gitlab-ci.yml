@@ -23,16 +23,16 @@ compile:
   script:
     - docker info #Magic docker fixer line, put this before other docker commands
     - echo "$HARBOR_PSWD" | docker login -u "$HARBOR_UNAME" harbor.sch.bme.hu --password-stdin
-    - docker pull muzsikusch:build || true # could use colon, but that fs up the formatting 
-    - docker pull muzsikusch:latest || true 
-    - docker build --target build --cache-from=muzsikusch:build --tag muzsikusch:build .
-    - docker build --cache-from=muzsikusch:build --cache-from=muzsikusch:latest --tag temp .
-    - docker tag temp muzsikusch:$CI_COMMIT_SHORT_SHA
-    - docker tag temp muzsikusch:latest
-    - docker push muzsikusch:build
-    - docker push muzsikusch:$CI_COMMIT_SHORT_SHA
-    - docker push muzsikusch:latest
-    - docker image rm temp muzsikusch:$CI_COMMIT_SHORT_SHA muzsikusch:latest muzsikusch:build
+    - docker pull harbor.sch.bme.hu/private-toth4/muzsikusch:build || true # could use colon, but that fs up the formatting
+    - docker pull harbor.sch.bme.hu/private-toth4/muzsikusch:latest || true
+    - docker build --target build --cache-from=harbor.sch.bme.hu/private-toth4/muzsikusch:build --tag harbor.sch.bme.hu/private-toth4/muzsikusch:build .
+    - docker build --cache-from=harbor.sch.bme.hu/private-toth4/muzsikusch:build --cache-from=harbor.sch.bme.hu/private-toth4/muzsikusch:latest --tag temp .
+    - docker tag temp harbor.sch.bme.hu/private-toth4/muzsikusch:$CI_COMMIT_SHORT_SHA
+    - docker tag temp harbor.sch.bme.hu/private-toth4/muzsikusch:latest
+    - docker push harbor.sch.bme.hu/private-toth4/muzsikusch:build
+    - docker push harbor.sch.bme.hu/private-toth4/muzsikusch:$CI_COMMIT_SHORT_SHA
+    - docker push harbor.sch.bme.hu/private-toth4/muzsikusch:latest
+    - docker image rm temp harbor.sch.bme.hu/private-toth4/muzsikusch:$CI_COMMIT_SHORT_SHA harbor.sch.bme.hu/private-toth4/muzsikusch:latest harbor.sch.bme.hu/private-toth4/muzsikusch:build
 
 deploy:
   stage: deploy

@@ -12,5 +12,5 @@ FROM alpine
 
 WORKDIR ./muzsikusch
 COPY --from=build /go/muzsikusch/html ./html
-COPY --from=build /go/muzsikusch/uzsikusch ./
+COPY --from=build /go/muzsikusch/muzsikusch ./
 ENTRYPOINT ./muzsikusch
